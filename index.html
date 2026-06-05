@@ -523,22 +523,23 @@ async function sincronizarConLista() {
     btn.disabled = true;
     btn.innerHTML = '⏳ Subiendo a Microsoft Lists...';
 
-    // Se filtran los datos para enviar un payload limpio y ligero a Power Automate
- const payload = agrupados.map(r => ({
+    // Empaquetamos los datos, agregando explícitamente el campo "fecha"
+    const payload = agrupados.map(r => ({
         obs: r.Observaciones,
         duracion: r.min,
         area: r.Area,
         codigo: r.Voz,
         linea: r.Linea,
-        fecha: r.Fecha // <-- Nuevo campo crítico
+        fecha: r.Fecha // <-- Nuevo campo crítico para la reconciliación
     }));
 
     try {
-        await emailjs.send("service_2sg430e", "template_153hzsc", {
+        // Asegúrate de usar el Template ID correcto (el que arreglamos en EmailJS)
+        await emailjs.send("service_2sg430e", "template_sync_global", {
             subject: "INOPS_SYNC_GLOBAL",
             data: JSON.stringify(payload)
         });
-        alert('✅ Éxito: Se ha enviado la tabla completa. Microsoft Lists se actualizará en breve verificando duplicados y cambios de tiempo.');
+        alert('✅ Éxito: Se ha enviado la tabla. Microsoft Lists se actualizará verificando duplicados y cambios de tiempo.');
         btn.innerHTML = '✅ Tabla Sincronizada';
         setStep(4);
     } catch (err) {
