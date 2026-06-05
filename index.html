@@ -523,17 +523,32 @@ async function sincronizarConLista() {
     btn.disabled = true;
     btn.innerHTML = '⏳ Subiendo a Microsoft Lists...';
 
-   // Empaquetamos los datos y limpiamos caracteres problemáticos (OData escape)
-    const payload = agrupados.map(r => ({
-        // Reemplazamos apóstrofes simples por acentos graves para no romper SharePoint
-        obs: (r.Observaciones || '').replace(/'/g, '`'),
-        duracion: r.min,
-        area: r.Area,
-        codigo: r.Voz,
-        linea: r.Linea,
-        fecha: r.Fecha 
-    }));
+// Empaquetamos los datos con un filtro de sanitización extremo
+    const payload = agrupados.map(r => {
+        // 1. Convertir a texto por seguridad
+        let cleanObs = String(r.Observaciones || '');
+        
+        // 2. Eliminar saltos de línea (Alt+Enter de Excel) y aplanar espacios
+        cleanObs = cleanObs.replace(/[\r\n]+/g, ' ');
+        
+        // 3. Reemplazar TODO tipo de comillas (simples, dobles, inteligentes) por acentos graves
+        cleanObs = cleanObs.replace(/['"“”‘’]/g, '`');
+        
+        // 4. Truncar a 250 caracteres (El límite estricto de SharePoint es 255)
+        if(cleanObs.length > 250) {
+            cleanObs = cleanObs.substring(0, 250);
+        }
 
+        return {
+            obs: cleanObs.trim(),
+            duracion: r.min,
+            area: r.Area,
+            codigo: r.Voz,
+            linea: r.Linea,
+            fecha: r.Fecha 
+        };
+    });
+    
     try {
         // Asegúrate de usar el Template ID correcto (el que arreglamos en EmailJS)
         await emailjs.send( 
