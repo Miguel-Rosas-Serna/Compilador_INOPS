@@ -549,19 +549,40 @@ async function sincronizarConLista() {
 
 // ── APRENDIZAJE INDIVIDUAL CONECTADO A LA NUBE ───────────────────
 function aprenderArea(rowId, nuevaArea, obsOriginal) {
+    // 1. Capturar el estado actual de los filtros
+    const estadoFiltros = {
+        l: document.getElementById('f-linea').value,
+        m: document.getElementById('f-mes').value,
+        t: document.getElementById('f-turno').value,
+        ty: document.getElementById('f-tipo').value,
+        c: document.getElementById('f-codigo').value,
+        a: document.getElementById('f-area').value
+    };
+
+    // 2. Actualizar el registro en memoria
     const row = agrupados.find(r => r.id === rowId);
     if(row) { row.Area = nuevaArea; row.Confianza = 100; }
     
+    // 3. Guardar en Base de Conocimientos (Local)
     const txtNorm = obsOriginal.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     const existente = knowledgeBase.find(kb => kb.texto === txtNorm);
     if (existente) existente.area = nuevaArea;
     else knowledgeBase.push({ texto: txtNorm, area: nuevaArea });
-    
     localStorage.setItem('inops_kb', JSON.stringify(knowledgeBase));
     
-    // Los datos ya están listos en memoria. 
-    // Se enviarán a la nube cuando presiones "Subir actualización de tabla".
-    poblarFiltros(); aplicarFiltros();
+    // 4. Reconstruir los selectores
+    poblarFiltros(); 
+
+    // 5. Restaurar el estado de los filtros
+    document.getElementById('f-linea').value = estadoFiltros.l;
+    document.getElementById('f-mes').value = estadoFiltros.m;
+    document.getElementById('f-turno').value = estadoFiltros.t;
+    document.getElementById('f-tipo').value = estadoFiltros.ty;
+    document.getElementById('f-codigo').value = estadoFiltros.c;
+    document.getElementById('f-area').value = estadoFiltros.a;
+
+    // 6. Aplicar la vista sin perder el contexto
+    aplicarFiltros();
 }
 
 // ── FILTROS Y RENDER ─────────────────────────────────────────────
