@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Cargador INOPS Multi-Línea V7.1 - Edición Tenaris Tamsa</title>
+<title>Cargador INOPS Multi-Línea V7.2 - Sincronización Pro</title>
 
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
@@ -10,7 +10,7 @@
 <script type="text/javascript">
    (function(){
       emailjs.init({
-        publicKey: "ptDVMrIvTEjy814jJ", // <-- Pega tu Public Key aquí
+        publicKey: "ptDVMrIvTEjy814jJ", 
       });
    })();
 </script>
@@ -142,11 +142,11 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
     <div class="step active" id="st1">1 · Carga de Archivos</div>
     <div class="step" id="st2">2 · Procesamiento IA</div>
     <div class="step" id="st3">3 · Validación y Filtros</div>
-    <div class="step" id="st4">4 · Exportación Corporativa</div>
+    <div class="step" id="st4">4 · Sincronización Global</div>
   </div>
 
   <div class="card" id="card-upload">
-    <div class="card-title">📂 Origen de Datos</div>
+    <div class="card-title">📂 Origen de Datos (Carga Masiva)</div>
     
     <div class="drop-container">
       <div class="drop drop-tubing" id="dz-tubing" onclick="document.getElementById('fi-tubing').click()">
@@ -174,34 +174,35 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
     </div>
   </div>
 
+  <div class="card">
+    <div class="card-title">📅 Actualización de Tabla Mensual (Persistencia)</div>
+    <div style="display:flex; gap:16px; align-items:center; flex-wrap: wrap;">
+      <div class="filter-group" style="flex: 0 1 auto; min-width: 150px;">
+        <label>Mes a Sincronizar</label>
+        <select id="update-mes-selector" style="width: 100%;">
+          <option value="Ene">Enero</option><option value="Feb">Febrero</option><option value="Mar">Marzo</option>
+          <option value="Abr">Abril</option><option value="May">Mayo</option><option value="Jun">Junio</option>
+          <option value="Jul">Julio</option><option value="Ago">Agosto</option><option value="Sep">Septiembre</option>
+          <option value="Oct">Octubre</option><option value="Nov">Noviembre</option><option value="Dic">Diciembre</option>
+        </select>
+      </div>
+      <div style="flex: 1;">
+        <label style="font-size:10px; font-weight:700; color:var(--tamsa-text-muted); text-transform:uppercase; letter-spacing: 0.5px; display:block; margin-bottom: 6px;">Cargar archivo para comparar</label>
+        <input type="file" id="fi-mensual" accept=".xls,.xlsx" onchange="procesarCargaMensual(this)" style="font-size: 13px;">
+      </div>
+    </div>
+  </div>
+
   <div class="card hidden" id="card-result">
     <div class="card-title">📊 Panel de Control y Registros</div>
     
     <div class="filter-bar">
-      <div class="filter-group">
-        <label>Línea</label>
-        <select id="f-linea" onchange="aplicarFiltros()"></select>
-      </div>
-      <div class="filter-group">
-        <label>Mes</label>
-        <select id="f-mes" onchange="aplicarFiltros()"></select>
-      </div>
-      <div class="filter-group">
-        <label>Turno</label>
-        <select id="f-turno" onchange="aplicarFiltros()"></select>
-      </div>
-      <div class="filter-group">
-        <label>Tipo</label>
-        <select id="f-tipo" onchange="aplicarFiltros()"></select>
-      </div>
-      <div class="filter-group">
-        <label>Código INOP</label>
-        <select id="f-codigo" onchange="aplicarFiltros()"></select>
-      </div>
-      <div class="filter-group">
-        <label>Área Asignada</label>
-        <select id="f-area" onchange="aplicarFiltros()"></select>
-      </div>
+      <div class="filter-group"><label>Línea</label><select id="f-linea" onchange="aplicarFiltros()"></select></div>
+      <div class="filter-group"><label>Mes</label><select id="f-mes" onchange="aplicarFiltros()"></select></div>
+      <div class="filter-group"><label>Turno</label><select id="f-turno" onchange="aplicarFiltros()"></select></div>
+      <div class="filter-group"><label>Tipo</label><select id="f-tipo" onchange="aplicarFiltros()"></select></div>
+      <div class="filter-group"><label>Código INOP</label><select id="f-codigo" onchange="aplicarFiltros()"></select></div>
+      <div class="filter-group"><label>Área Asignada</label><select id="f-area" onchange="aplicarFiltros()"></select></div>
     </div>
 
     <div class="stats" id="stats"></div>
@@ -227,6 +228,10 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
     </div>
 
     <div class="btn-row">
+      <button class="btn btn-blue" onclick="sincronizarConLista()" id="btn-sync">
+        🔄 Subir actualización de tabla a Microsoft Lists
+      </button>
+
       <button class="btn btn-green" id="btn-copy" onclick="copiar()">
         📋 Copiar Tabla Visible
       </button>
@@ -423,7 +428,126 @@ function procesarTodo() {
   }, 300);
 }
 
-// ── APRENDIZAJE CONECTADO A LA NUBE ──────────────────────────────
+// ── LÓGICA DE ACTUALIZACIÓN MENSUAL (NUEVO) ──────────────────────
+function procesarCargaMensual(input) {
+    const mes = document.getElementById('update-mes-selector').value;
+    const file = input.files[0];
+    if(!file) return;
+
+    const btnSync = document.getElementById('btn-sync');
+    btnSync.innerHTML = '⏳ Procesando archivo...';
+    btnSync.disabled = true;
+
+    const reader = new FileReader();
+    reader.onload = e => {
+        try {
+            // 1. Parsear el archivo con la misma lógica de lectura
+            const doc = new DOMParser().parseFromString(e.target.result, 'text/html');
+            const tbl = doc.querySelector('table');
+            if (!tbl) throw new Error('Formato inválido');
+            
+            const filas = [];
+            tbl.querySelectorAll('tr').forEach(tr => {
+                const c = []; 
+                tr.querySelectorAll('th,td').forEach(td => c.push(td.textContent.trim())); 
+                if (c.some(x => x)) filas.push(c);
+            });
+
+            // 2. Limpiar y estructurar los datos
+            const rawRows = filas.slice(1).map(row => ({
+                Tipo: row[0] || '', 
+                Codigo: row[8] || '', 
+                Duracion: row[7] || '', 
+                Observaciones: row[10] || ''
+            })).filter(d => d.Observaciones && d.Observaciones.toLowerCase() !== 'observaciones');
+
+            // 3. Agrupar para sumar tiempos de observaciones duplicadas en el mismo mes
+            const consolidados = {};
+            rawRows.forEach(row => {
+                const obsNorm = row.Observaciones.toLowerCase();
+                if (!consolidados[obsNorm]) {
+                    // Predicción inicial usando la IA local
+                    const analisis = determinarAreaHibrida(row.Observaciones);
+                    consolidados[obsNorm] = {
+                        obs: row.Observaciones,
+                        duracion: 0,
+                        area: analisis.area,
+                        codigo: row.Codigo,
+                        linea: "MIXTA", // Al ser un reporte mensual, puede incluir ambas
+                        mes: mes
+                    };
+                }
+                consolidados[obsNorm].duracion += durAMin(row.Duracion);
+            });
+
+            // 4. Convertir a Array y redondear
+            const payload = Object.values(consolidados).map(r => ({
+                ...r, 
+                duracion: Math.round(r.duracion * 100) / 100
+            }));
+
+            // 5. Enviar directamente al flujo de Power Automate
+            enviarSyncMasivo(payload, mes);
+
+        } catch(err) { 
+            alert('Error al leer el archivo: ' + err.message); 
+            btnSync.innerHTML = '🔄 Subir actualización de tabla a Microsoft Lists';
+            btnSync.disabled = false;
+        }
+    };
+    reader.readAsText(file, 'ISO-8859-1');
+}
+
+// Separamos el envío en una función dedicada para mayor limpieza
+async function enviarSyncMasivo(payload, mes) {
+    const btnSync = document.getElementById('btn-sync');
+    btnSync.innerHTML = '⏳ Subiendo a Microsoft Lists...';
+
+    try {
+        await emailjs.send("service_2sg430e", "template_sync_global", {
+            subject: `INOPS_SYNC_GLOBAL | ${mes}`,
+            data: JSON.stringify(payload)
+        });
+        alert(`✅ Éxito: Se ha enviado la tabla de ${mes}. Power Automate está verificando duplicados y cambios de tiempo en segundo plano.`);
+        btnSync.innerHTML = '✅ Tabla Sincronizada';
+    } catch (err) {
+        console.error('Error sincronizando tabla:', err);
+        btnSync.innerHTML = '❌ Error - Reintentar';
+        btnSync.disabled = false;
+    }
+}
+
+// ── SINCRONIZACIÓN MASIVA (NUEVO BOTÓN) ──────────────────────────
+async function sincronizarConLista() {
+    const btn = document.getElementById('btn-sync');
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Subiendo a Microsoft Lists...';
+
+    // Se filtran los datos para enviar un payload limpio y ligero a Power Automate
+    const payload = agrupados.map(r => ({
+        obs: r.Observaciones,
+        duracion: r.min,
+        area: r.Area,
+        codigo: r.Voz,
+        linea: r.Linea
+    }));
+
+    try {
+        await emailjs.send("service_2sg430e", "template_sync_global", {
+            subject: "INOPS_SYNC_GLOBAL",
+            data: JSON.stringify(payload)
+        });
+        alert('✅ Éxito: Se ha enviado la tabla completa. Microsoft Lists se actualizará en breve verificando duplicados y cambios de tiempo.');
+        btn.innerHTML = '✅ Tabla Sincronizada';
+        setStep(4);
+    } catch (err) {
+        console.error('Error sincronizando tabla:', err);
+        btn.innerHTML = '❌ Error - Reintentar';
+        btn.disabled = false;
+    }
+}
+
+// ── APRENDIZAJE INDIVIDUAL CONECTADO A LA NUBE ───────────────────
 function aprenderArea(rowId, nuevaArea, obsOriginal) {
     const row = agrupados.find(r => r.id === rowId);
     if(row) { row.Area = nuevaArea; row.Confianza = 100; }
@@ -433,22 +557,21 @@ function aprenderArea(rowId, nuevaArea, obsOriginal) {
     if (existente) existente.area = nuevaArea;
     else knowledgeBase.push({ texto: txtNorm, area: nuevaArea });
     
-    // Guarda localmente por velocidad
     localStorage.setItem('inops_kb', JSON.stringify(knowledgeBase));
     
-    // Envía el aprendizaje a Microsoft Lists vía Power Automate
     if(nuevaArea !== 'PENDIENTE') {
         emailjs.send("service_2sg430e", "template_153hzsc", {
             texto: txtNorm,
             area: nuevaArea
         }).then(
-          (response) => { console.log('Éxito: Aprendizaje sincronizado en la nube.', response.status); },
-          (error) => { console.error('Error sincronizando con la nube.', error); }
+          (response) => { console.log('Éxito: Aprendizaje sincronizado.', response.status); },
+          (error) => { console.error('Error sincronizando aprendizaje.', error); }
         );
     }
 
     poblarFiltros(); aplicarFiltros();
 }
+
 // ── FILTROS Y RENDER ─────────────────────────────────────────────
 function poblarFiltros() {
   const buildOpts = (arr) => `<option value="ALL">Mostrar Todos</option>` + arr.map(x => `<option value="${x}">${x}</option>`).join('');
@@ -524,35 +647,21 @@ function renderTabla() {
   tsvData = hdrs.join('\t') + '\n' + filtrados.map(r => [r.Voz, r.Linea, r.Area, r.Fecha, r.Turno, r.Inicio, r.Fin, r.min, r.Observaciones].map(v => String(v||'').replace(/\t/g,' ')).join('\t')).join('\n');
 }
 
-// ── EXPORTACIÓN ESPECÍFICA (TUBING, CASING O TODO) ───────────────
+// ── EXPORTACIÓN ESPECÍFICA ───────────────────────────────────────
 function exportarEspecifico(lineaFiltro) {
   if (!agrupados.length) return;
-  
   let dataAExportar = agrupados;
-  if (lineaFiltro !== 'ALL') {
-      dataAExportar = agrupados.filter(r => r.Linea === lineaFiltro);
-  }
-  
-  if (dataAExportar.length === 0) {
-      alert(`No hay datos procesados para la línea: ${lineaFiltro}`);
-      return;
-  }
+  if (lineaFiltro !== 'ALL') { dataAExportar = agrupados.filter(r => r.Linea === lineaFiltro); }
+  if (dataAExportar.length === 0) { alert(`No hay datos procesados para la línea: ${lineaFiltro}`); return; }
 
   const datosPorMes = {};
   dataAExportar.forEach(r => {
     const mes = r.Mes || 'Sin_Mes';
     if (!datosPorMes[mes]) datosPorMes[mes] = [];
-    
     datosPorMes[mes].push({
-        "Código INOP": r.Voz, 
-        "Línea Producción": r.Linea, 
-        "Área Asignada": r.Area, 
-        "Fecha Evento": r.Fecha, 
-        "Turno": r.Turno, 
-        "Hora Inicio": r.Inicio, 
-        "Hora Fin": r.Fin, 
-        "Duración (min)": r.min, 
-        "Observaciones de Falla": r.Observaciones
+        "Código INOP": r.Voz, "Línea Producción": r.Linea, "Área Asignada": r.Area, 
+        "Fecha Evento": r.Fecha, "Turno": r.Turno, "Hora Inicio": r.Inicio, 
+        "Hora Fin": r.Fin, "Duración (min)": r.min, "Observaciones de Falla": r.Observaciones
     });
   });
 
@@ -584,7 +693,7 @@ async function copiar() {
 }
 
 function limpiarTodo() { archivos = []; agrupados = []; filtrados = []; document.getElementById('files-grid').style.display = 'none'; document.getElementById('btn-procesar-row').style.display = 'none'; reiniciar(); }
-function reiniciar() { document.getElementById('card-result').classList.add('hidden'); setStep(1); }
+function reiniciar() { document.getElementById('card-result').classList.add('hidden'); setStep(1); document.getElementById('btn-sync').innerHTML = '🔄 Subir actualización de tabla a Microsoft Lists'; document.getElementById('btn-sync').disabled = false;}
 function setStep(n) { for (let i=1; i<=4; i++) document.getElementById('st'+i).className = 'step' + (i<n?' done':i===n?' active':''); }
 </script>
 </body>
