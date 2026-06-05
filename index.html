@@ -504,7 +504,7 @@ async function enviarSyncMasivo(payload, mes) {
     btnSync.innerHTML = '⏳ Subiendo a Microsoft Lists...';
 
     try {
-        await emailjs.send("service_2sg430e", "template_sync_global", {
+        await emailjs.send("service_2sg430e", "template_153hzsc", {
             subject: `INOPS_SYNC_GLOBAL | ${mes}`,
             data: JSON.stringify(payload)
         });
@@ -537,7 +537,7 @@ async function sincronizarConLista() {
         // Asegúrate de usar el Template ID correcto (el que arreglamos en EmailJS)
         await emailjs.send( 
             "service_2sg430e" , 
-            "template_sync_global", {
+            "template_153hzsc", {
             subject: "INOPS_SYNC_GLOBAL",
             data: JSON.stringify(payload)
         });
