@@ -524,12 +524,13 @@ async function sincronizarConLista() {
     btn.innerHTML = '⏳ Subiendo a Microsoft Lists...';
 
     // Se filtran los datos para enviar un payload limpio y ligero a Power Automate
-    const payload = agrupados.map(r => ({
+ const payload = agrupados.map(r => ({
         obs: r.Observaciones,
         duracion: r.min,
         area: r.Area,
         codigo: r.Voz,
-        linea: r.Linea
+        linea: r.Linea,
+        fecha: r.Fecha // <-- Nuevo campo crítico
     }));
 
     try {
