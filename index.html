@@ -6,6 +6,14 @@
 
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script type="text/javascript">
+   (function(){
+      emailjs.init({
+        publicKey: "ptDVMrIvTEjy814jJ", // <-- Pega tu Public Key aquí
+      });
+   })();
+</script>
 <style>
 /* ── PALETA CORPORATIVA TENARIS TAMSA (VARIABLES GLOBALES) ── */
 :root {
@@ -415,7 +423,7 @@ function procesarTodo() {
   }, 300);
 }
 
-// ── APRENDIZAJE ──────────────────────────────────────────────────
+// ── APRENDIZAJE CONECTADO A LA NUBE ──────────────────────────────
 function aprenderArea(rowId, nuevaArea, obsOriginal) {
     const row = agrupados.find(r => r.id === rowId);
     if(row) { row.Area = nuevaArea; row.Confianza = 100; }
@@ -425,10 +433,22 @@ function aprenderArea(rowId, nuevaArea, obsOriginal) {
     if (existente) existente.area = nuevaArea;
     else knowledgeBase.push({ texto: txtNorm, area: nuevaArea });
     
+    // Guarda localmente por velocidad
     localStorage.setItem('inops_kb', JSON.stringify(knowledgeBase));
+    
+    // Envía el aprendizaje a Microsoft Lists vía Power Automate
+    if(nuevaArea !== 'PENDIENTE') {
+        emailjs.send("service_2sg430e", "template_153hzsc", {
+            texto: txtNorm,
+            area: nuevaArea
+        }).then(
+          (response) => { console.log('Éxito: Aprendizaje sincronizado en la nube.', response.status); },
+          (error) => { console.error('Error sincronizando con la nube.', error); }
+        );
+    }
+
     poblarFiltros(); aplicarFiltros();
 }
-
 // ── FILTROS Y RENDER ─────────────────────────────────────────────
 function poblarFiltros() {
   const buildOpts = (arr) => `<option value="ALL">Mostrar Todos</option>` + arr.map(x => `<option value="${x}">${x}</option>`).join('');
