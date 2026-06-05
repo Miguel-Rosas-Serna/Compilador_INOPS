@@ -559,16 +559,8 @@ function aprenderArea(rowId, nuevaArea, obsOriginal) {
     
     localStorage.setItem('inops_kb', JSON.stringify(knowledgeBase));
     
-    if(nuevaArea !== 'PENDIENTE') {
-        emailjs.send("service_2sg430e", "template_153hzsc", {
-            texto: txtNorm,
-            area: nuevaArea
-        }).then(
-          (response) => { console.log('Éxito: Aprendizaje sincronizado.', response.status); },
-          (error) => { console.error('Error sincronizando aprendizaje.', error); }
-        );
-    }
-
+    // Los datos ya están listos en memoria. 
+    // Se enviarán a la nube cuando presiones "Subir actualización de tabla".
     poblarFiltros(); aplicarFiltros();
 }
 
