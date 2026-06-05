@@ -523,14 +523,15 @@ async function sincronizarConLista() {
     btn.disabled = true;
     btn.innerHTML = '⏳ Subiendo a Microsoft Lists...';
 
-    // Empaquetamos los datos, agregando explícitamente el campo "fecha"
+   // Empaquetamos los datos y limpiamos caracteres problemáticos (OData escape)
     const payload = agrupados.map(r => ({
-        obs: r.Observaciones,
+        // Reemplazamos apóstrofes simples por acentos graves para no romper SharePoint
+        obs: (r.Observaciones || '').replace(/'/g, '`'),
         duracion: r.min,
         area: r.Area,
         codigo: r.Voz,
         linea: r.Linea,
-        fecha: r.Fecha // <-- Nuevo campo crítico para la reconciliación
+        fecha: r.Fecha 
     }));
 
     try {
