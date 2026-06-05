@@ -535,7 +535,9 @@ async function sincronizarConLista() {
 
     try {
         // Asegúrate de usar el Template ID correcto (el que arreglamos en EmailJS)
-        await emailjs.send("service_2sg430e", "template_sync_global", {
+        await emailjs.send( 
+            "service_2sg430e" , 
+            "template_sync_global", {
             subject: "INOPS_SYNC_GLOBAL",
             data: JSON.stringify(payload)
         });
