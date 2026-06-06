@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Cargador INOPS Multi-Línea V8.0 - Enterprise Edition</title>
+<title>Cargador INOPS Multi-Línea V8.1 - Enterprise Edition</title>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
@@ -63,7 +63,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 </head>
 <body>
 <div class="topbar">
-  <h1>⚙ Cargador INOPS — Hub de Control Dual (Enterprise Edition)</h1>
+  <h1>⚙ Cargador INOPS — Hub de Control Dual (Enterprise Edition V8.1)</h1>
   <span>Tenaris Tamsa | Análisis Multidimensional</span>
 </div>
 
@@ -109,7 +109,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
       </div>
       <div style="flex: 1;">
         <label style="font-size:10px; font-weight:700; color:var(--tamsa-text-muted); text-transform:uppercase; letter-spacing: 0.5px; display:block; margin-bottom: 6px;">Cargar archivo para comparar</label>
-        <input type="file" id="fi-mensual" accept=".xls,.xlsx" style="font-size: 13px;">
+        <input type="file" id="fi-mensual" accept=".xls,.xlsx,.html" style="font-size: 13px;">
       </div>
     </div>
   </div>
@@ -144,8 +144,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 </div>
 
 <script>
-/** * ARQUITECTURA MODULAR - IIFE (Encapsulación para evitar fuga global)
- */
+/** * ARQUITECTURA MODULAR - IIFE (Encapsulación para evitar fuga global) */
 (function InopsApp() {
     'use strict';
 
@@ -153,11 +152,10 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
     const CFG = {
         emailJsKey: "ptDVMrIvTEjy814jJ",
         emailJsService: "service_2sg430e",
-        emailJsTemplate: "template_nbl0p7q", // EL ID REAL (EJEMPLO)
+        emailJsTemplate: "template_153hzsc", // <-- ID RESTAURADO A TU VERSION FUNCIONAL
         mesesOden: ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic','Sin_Mes','Sin Mes','Desconocido']
     };
 
-    // Inicialización de EmailJS
     emailjs.init({ publicKey: CFG.emailJsKey });
 
     // ── ESTADO GLOBAL DE LA APP (Aislado) ─────────────────────────
@@ -167,10 +165,10 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         filtrados: [],
         tsvData: '',
         knowledgeBase: JSON.parse(localStorage.getItem('inops_kb')) || [],
-        kbCache: [] // Cache computacional pre-calculada
+        kbCache: []
     };
 
-    // ── HERRAMIENTAS DE SEGURIDAD (XSS PREVENTION) ────────────────
+    // ── HERRAMIENTAS DE SEGURIDAD Y PARSEO ────────────────────────
     const Helpers = {
         escapeHTML: (str) => {
             if (typeof str !== 'string') return str;
@@ -186,7 +184,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
             return 'Desconocido';
         },
         durAMin: (d) => {
-            d = (d||'').trim();
+            d = String(d||'').trim();
             if (d.includes(':')) {
                 const p = d.split(':').map(Number);
                 if (p.length === 3) return p[0]*60 + p[1] + p[2]/60;
@@ -207,7 +205,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         }
     };
 
-    // ── MOTOR HÍBRIDO (OPTIMIZADO O(N)) ───────────────────────────
+    // ── MOTOR HÍBRIDO (OPTIMIZADO) ───────────────────────────
     function inicializarKBCache() {
         State.kbCache = State.knowledgeBase.map(kb => ({
             ...kb,
@@ -229,7 +227,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         if (State.kbCache.length > 0) {
             let maxScore = 0; let predictedArea = 'PENDIENTE';
             const inputBigrams = Helpers.getBigrams(txt);
-            
             for (let kb of State.kbCache) {
                 let score = Helpers.similitudDice(inputBigrams, kb.bigrams);
                 if (score > maxScore) { maxScore = score; predictedArea = kb.area; }
@@ -239,7 +236,79 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         return { area: 'PENDIENTE', conf: 0, origen: 'Nuevo' };
     }
 
-    // ── LECTURA DE ARCHIVOS (Mapeo Dinámico y Binario Nativo) ─────
+    // ── LECTOR UNIVERSAL (RESOLUCIÓN DE BUG DE FECHAS/TIEMPOS) ─────
+    function parsearArchivoUniversal(resultBuffer) {
+        // Detectar tipo de archivo mirando los primeros 100 bytes
+        const headerStr = new TextDecoder().decode(new Uint8Array(resultBuffer).subarray(0, 100)).toLowerCase();
+        
+        let filasDatos = [];
+        let headerIdx = -1;
+        let hRow = [];
+
+        if (headerStr.includes('<html') || headerStr.includes('<xml') || headerStr.includes('<table')) {
+            // FALLBACK V7: Es un HTML exportado de Excel. Preserva strings exactos (06:12:12)
+            const textStr = new TextDecoder('iso-8859-1').decode(resultBuffer);
+            const doc = new DOMParser().parseFromString(textStr, 'text/html');
+            const tbl = doc.querySelector('table');
+            if (!tbl) throw new Error('Tabla no encontrada en el documento');
+
+            const filas = [];
+            tbl.querySelectorAll('tr').forEach(tr => {
+                const c = [];
+                tr.querySelectorAll('th,td').forEach(td => c.push(td.textContent.trim()));
+                if (c.some(x => x)) filas.push(c);
+            });
+
+            for (let i=0; i<Math.min(10, filas.length); i++) {
+                const strRow = filas[i].join('').toLowerCase();
+                if (strRow.includes('observacion') || strRow.includes('codigo')) { 
+                    headerIdx = i; hRow = filas[i].map(h => String(h).toLowerCase().trim()); break; 
+                }
+            }
+            if (headerIdx === -1) throw new Error('Columnas base no encontradas en HTML');
+            filasDatos = filas.slice(headerIdx + 1);
+
+        } else {
+            // MODO V8: Es un archivo binario real de Excel (.xlsx)
+            const workbook = XLSX.read(resultBuffer, {type: 'array'});
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            // raw: false asegura que tiempos y fechas salgan como string formateado
+            const jsonData = XLSX.utils.sheet_to_json(firstSheet, {header: 1, raw: false, dateNF: 'yyyy-mm-dd', defval: ""});
+            
+            for (let i=0; i<Math.min(10, jsonData.length); i++) {
+                const strRow = jsonData[i].join('').toLowerCase();
+                if (strRow.includes('observacion') || strRow.includes('codigo')) { 
+                    headerIdx = i; hRow = jsonData[i].map(h => String(h).toLowerCase().trim()); break; 
+                }
+            }
+            if (headerIdx === -1) throw new Error('Columnas base no encontradas en Binario');
+            filasDatos = jsonData.slice(headerIdx + 1);
+        }
+
+        // Mapeo Dinámico + Seguro (Respaldo exacto de la V7)
+        const getIdx = (keywords, fallback) => {
+            let idx = hRow.findIndex(h => keywords.some(k => h.includes(k)));
+            return idx !== -1 ? idx : fallback;
+        };
+
+        const mapCol = {
+            tipo: getIdx(['tipo'], 0), fecha: getIdx(['fecha'], 1),
+            turno: getIdx(['turno'], 2), inicio: getIdx(['inicio'], 5),
+            fin: getIdx(['fin'], 6), duracion: getIdx(['duracion', 'duración', 'tiempo'], 7),
+            codigo: getIdx(['codigo', 'código'], 8), obs: getIdx(['observacion', 'observación'], 10)
+        };
+
+        return filasDatos.map(row => {
+            const safeGet = (i) => i !== -1 && row[i] !== undefined ? String(row[i]).trim() : '';
+            return {
+                Tipo: safeGet(mapCol.tipo), Fecha: safeGet(mapCol.fecha),
+                Turno: safeGet(mapCol.turno), Inicio: safeGet(mapCol.inicio),
+                Fin: safeGet(mapCol.fin), Duracion: safeGet(mapCol.duracion),
+                Codigo: safeGet(mapCol.codigo), Observaciones: safeGet(mapCol.obs)
+            };
+        }).filter(d => d.Observaciones !== '' && d.Observaciones.toLowerCase() !== 'observaciones');
+    }
+
     function agregarFiles(fileList, linea) {
         Array.from(fileList).forEach(file => {
             if (State.archivos.find(a => a.name === file.name && a.linea === linea)) return;
@@ -254,62 +323,17 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
     function leerArchivoRobust(idx) {
         const arc = State.archivos[idx];
         const reader = new FileReader();
-        
         reader.onload = (e) => {
             try {
-                const data = new Uint8Array(e.target.result);
-                // SheetJS lee binario real (.xlsx) y HTML tabulares exportados
-                const workbook = XLSX.read(data, {type: 'array'}); 
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet, {header: 1, defval: ""});
-                
-                if (jsonData.length < 2) throw new Error('Archivo sin datos o vacío');
-
-                // Detección dinámica de cabeceras
-                let headerIdx = -1;
-                for (let i=0; i<Math.min(10, jsonData.length); i++) {
-                    const strRow = jsonData[i].join('').toLowerCase();
-                    if (strRow.includes('observacion') || strRow.includes('codigo')) { headerIdx = i; break; }
-                }
-                if (headerIdx === -1) throw new Error('Columnas base (Código, Observaciones) no encontradas');
-
-                const hRow = jsonData[headerIdx].map(h => String(h).toLowerCase().trim());
-                
-                // Mapeo dinámico tolerante a fallos
-                const mapCol = {
-                    tipo: hRow.findIndex(h => h.includes('tipo')),
-                    fecha: hRow.findIndex(h => h.includes('fecha')),
-                    turno: hRow.findIndex(h => h.includes('turno')),
-                    inicio: hRow.findIndex(h => h.includes('inicio')),
-                    fin: hRow.findIndex(h => h.includes('fin')),
-                    duracion: hRow.findIndex(h => h.includes('duracion') || h.includes('duración') || h.includes('tiempo')),
-                    codigo: hRow.findIndex(h => h.includes('codigo') || h.includes('código')),
-                    obs: hRow.findIndex(h => h.includes('observacion') || h.includes('observación'))
-                };
-
-                const filasDatos = jsonData.slice(headerIdx + 1);
-                arc.rows = filasDatos.map(row => {
-                    const safeGet = (i) => i !== -1 && row[i] !== undefined ? String(row[i]).trim() : '';
-                    return {
-                        Linea: arc.linea,
-                        Tipo: safeGet(mapCol.tipo),
-                        Fecha: safeGet(mapCol.fecha),
-                        Turno: safeGet(mapCol.turno),
-                        Inicio: safeGet(mapCol.inicio),
-                        Fin: safeGet(mapCol.fin),
-                        Duracion: safeGet(mapCol.duracion),
-                        Codigo: safeGet(mapCol.codigo),
-                        Observaciones: safeGet(mapCol.obs)
-                    }
-                }).filter(d => d.Observaciones !== '');
-
+                const rawRows = parsearArchivoUniversal(e.target.result);
+                arc.rows = rawRows.map(r => ({...r, Linea: arc.linea}));
                 arc.estado = 'ok'; arc.rawCount = arc.rows.length;
             } catch(err) {
                 arc.estado = 'error'; arc.error = err.message;
             }
             renderChips();
         };
-        reader.readAsArrayBuffer(arc.file); // ArrayBuffer nativo
+        reader.readAsArrayBuffer(arc.file);
     }
 
     // ── PROCESAMIENTO Y SINCRONIZACIÓN ────────────────────────────
@@ -350,6 +374,57 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         }, 100);
     }
 
+    // Lógica Unificada para la carga mensual
+    function procesarCargaMensual(input) {
+        const mes = document.getElementById('update-mes-selector').value;
+        const file = input.files[0];
+        if(!file) return;
+
+        const btnSync = document.getElementById('btn-sync');
+        btnSync.innerHTML = '⏳ Procesando archivo...';
+        btnSync.disabled = true;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const rawRows = parsearArchivoUniversal(e.target.result);
+                
+                const consolidados = {};
+                rawRows.forEach(row => {
+                    const obsNorm = row.Observaciones.toLowerCase();
+                    if (!consolidados[obsNorm]) {
+                        const analisis = determinarAreaHibrida(row.Observaciones);
+                        consolidados[obsNorm] = {
+                            obs: row.Observaciones,
+                            duracion: 0,
+                            area: analisis.area,
+                            codigo: row.Codigo,
+                            linea: "MIXTA", 
+                            fecha: row.Fecha 
+                        };
+                    }
+                    consolidados[obsNorm].duracion += Helpers.durAMin(row.Duracion);
+                });
+
+                const payload = Object.values(consolidados).map(r => ({
+                    obs: Helpers.cleanOData(r.obs),
+                    duracion: Math.round(r.duracion * 100) / 100,
+                    area: r.area,
+                    codigo: r.codigo,
+                    linea: r.linea,
+                    fecha: r.fecha
+                }));
+
+                enviarSyncMasivo(payload, mes);
+            } catch(err) { 
+                alert('Error al leer el archivo: ' + err.message); 
+                btnSync.innerHTML = '🔄 Subir actualización a Microsoft Lists';
+                btnSync.disabled = false;
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
     async function enviarSyncMasivo(payload, mesContexto) {
         const btnSync = document.getElementById('btn-sync');
         btnSync.innerHTML = '⏳ Subiendo a Microsoft Lists...';
@@ -360,7 +435,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                 subject: mesContexto ? `INOPS_SYNC_GLOBAL | ${mesContexto}` : "INOPS_SYNC_GLOBAL",
                 data: JSON.stringify(payload)
             });
-            alert('✅ Éxito: Se ha enviado la tabla para sincronización.');
+            alert('✅ Éxito: Se ha enviado la tabla. Power Automate procesará los datos.');
             btnSync.innerHTML = '✅ Tabla Sincronizada';
             setStep(4);
         } catch (err) {
@@ -392,7 +467,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
             const color = a.linea==='TUBING'?'var(--color-tubing)':'var(--color-casing)';
             const icon = a.estado === 'ok' ? '✅' : a.estado === 'error' ? '❌' : '⏳';
             const detail = a.estado === 'ok' ? `${a.rawCount} registros` : a.estado === 'error' ? 'Error' : 'Procesando...';
-            // Escapado seguro
             html += `<div class="file-chip" style="border-left: 4px solid ${color}">
                 <span class="ficon">${icon}</span>
                 <div style="flex:1;min-width:0">
@@ -436,9 +510,11 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
             <div class="stat"><div class="n" style="${pendientes > 0 ? 'color:var(--tamsa-red)' : ''}">${pendientes}</div><div class="l">Fallas Pendientes</div></div>
             <div class="stat"><div class="n">${State.filtrados.length}</div><div class="l">Eventos Visibles</div></div>
             <div class="stat"><div class="n">${totalMin.toFixed(1)}</div><div class="l">Minutos Totales</div></div>
+            <div class="stat"><div class="n">${document.getElementById('f-linea').value === 'ALL' ? 'Ambas' : document.getElementById('f-linea').value}</div><div class="l">Línea Activa</div></div>
+            <div class="stat"><div class="n">${document.getElementById('f-area').value === 'ALL' ? 'Todas' : document.getElementById('f-area').value}</div><div class="l">Área Activa</div></div>
+            <div class="stat"><div class="n">${document.getElementById('f-codigo').value === 'ALL' ? 'Todos' : document.getElementById('f-codigo').value}</div><div class="l">Código Activo</div></div>
         `;
 
-        // Uso estricto de sanitización HTML para cada variable expuesta
         document.getElementById('tbody').innerHTML = State.filtrados.map(r => {
             return `
             <tr>
@@ -475,7 +551,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 
     // ── GESTIÓN DE EVENTOS CENTRALIZADA ───────────────────────────
     function initEvents() {
-        // Dropzones click
         document.querySelectorAll('.drop').forEach(el => {
             el.addEventListener('click', () => document.getElementById(el.getAttribute('data-target')).click());
             el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('over'); });
@@ -488,11 +563,10 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
             });
         });
 
-        // Inputs file changes
         document.getElementById('fi-tubing').addEventListener('change', function() { if(this.files.length) agregarFiles(this.files, 'TUBING'); });
         document.getElementById('fi-casing').addEventListener('change', function() { if(this.files.length) agregarFiles(this.files, 'CASING'); });
+        document.getElementById('fi-mensual').addEventListener('change', function() { if(this.files.length) procesarCargaMensual(this); });
 
-        // Delegation para eliminar archivos (Chips)
         document.getElementById('files-grid').addEventListener('click', (e) => {
             if(e.target.classList.contains('fdel')) {
                 State.archivos.splice(e.target.getAttribute('data-idx'), 1);
@@ -501,7 +575,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
             }
         });
 
-        // Botones Generales
         document.getElementById('btn-procesar').addEventListener('click', procesarTodo);
         document.getElementById('btn-descartar').addEventListener('click', limpiarTodo);
         document.getElementById('btn-sync').addEventListener('click', prepararSincronizacionVisible);
@@ -516,12 +589,10 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
             setStep(4);
         });
 
-        // Eventos exportación Excel
         document.querySelectorAll('[data-export]').forEach(btn => {
             btn.addEventListener('click', (e) => exportarExcel(e.target.getAttribute('data-export'), e.target.id));
         });
 
-        // Delegation Selects (Aprendizaje dinámico manual)
         document.getElementById('tbody').addEventListener('change', (e) => {
             if(e.target.classList.contains('dynamic-area-change')) {
                 const rowId = e.target.getAttribute('data-id');
@@ -530,9 +601,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                 const row = State.agrupados.find(r => r.id === rowId);
                 if(!row) return;
                 
-                // Mantiene el filtro visual state
                 const fStates = ['f-linea', 'f-mes', 'f-turno', 'f-tipo', 'f-codigo', 'f-area'].map(id => document.getElementById(id).value);
-                
                 row.Area = nuevaArea; row.Confianza = 100;
                 
                 const txtNorm = row.Observaciones.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -541,7 +610,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                 else State.knowledgeBase.push({ texto: txtNorm, area: nuevaArea });
                 
                 localStorage.setItem('inops_kb', JSON.stringify(State.knowledgeBase));
-                inicializarKBCache(); // Actualiza caché
+                inicializarKBCache(); 
                 
                 poblarFiltros();
                 fStates.forEach((val, i) => document.getElementById(['f-linea', 'f-mes', 'f-turno', 'f-tipo', 'f-codigo', 'f-area'][i]).value = val);
@@ -549,7 +618,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
             }
         });
 
-        // Listener filtros UI
         document.querySelectorAll('.evt-filter').forEach(f => f.addEventListener('change', aplicarFiltros));
     }
 
@@ -577,7 +645,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         const btn = document.getElementById(btnId); const orig = btn.innerHTML; btn.innerHTML = '✅ Descarga Completada'; setTimeout(() => btn.innerHTML = orig, 3000); setStep(4);
     }
 
-    // Inicializador al cargar el DOM
     document.addEventListener('DOMContentLoaded', () => {
         inicializarKBCache();
         initEvents();
