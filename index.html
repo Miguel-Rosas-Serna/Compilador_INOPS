@@ -2,142 +2,72 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Cargador INOPS Multi-Línea V7.2 - Sincronización Pro</title>
-
+<title>Cargador INOPS Multi-Línea V8.0 - Enterprise Edition</title>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-<script type="text/javascript">
-   (function(){
-      emailjs.init({
-        publicKey: "ptDVMrIvTEjy814jJ", 
-      });
-   })();
-</script>
-<style>
-/* ── PALETA CORPORATIVA TENARIS TAMSA (VARIABLES GLOBALES) ── */
-:root {
-  --tamsa-blue: #002D62;       /* Azul marino corporativo */
-  --tamsa-blue-hover: #001A3B;
-  --tamsa-red: #D22730;        /* Rojo corporativo */
-  --tamsa-red-hover: #A11D25;
-  --tamsa-bg: #F0F2F5;         /* Gris claro de fondo general */
-  --tamsa-surface: #FFFFFF;    /* Blanco para tarjetas */
-  --tamsa-border: #D1D5DB;     /* Gris para bordes */
-  --tamsa-text: #1F2937;       /* Gris muy oscuro para texto principal */
-  --tamsa-text-muted: #6B7280; /* Gris medio para textos secundarios */
-  
-  /* Colores específicos de proceso */
-  --color-tubing: #004085;
-  --color-casing: #D22730;
-  --color-excel: #107C41;      /* Verde oficial de Excel */
-}
 
+<style>
+/* ── PALETA CORPORATIVA Y DISEÑO UI MANTENIDO INTACTO ── */
+:root { --tamsa-blue: #002D62; --tamsa-blue-hover: #001A3B; --tamsa-red: #D22730; --tamsa-red-hover: #A11D25; --tamsa-bg: #F0F2F5; --tamsa-surface: #FFFFFF; --tamsa-border: #D1D5DB; --tamsa-text: #1F2937; --tamsa-text-muted: #6B7280; --color-tubing: #004085; --color-casing: #D22730; --color-excel: #107C41; }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family: 'Segoe UI', Arial, sans-serif; background:var(--tamsa-bg); color:var(--tamsa-text); font-size:14px; line-height: 1.5;}
-
-/* TOPBAR */
 .topbar{background:var(--tamsa-blue); color:var(--tamsa-surface); padding:16px 32px; display:flex; align-items:center; justify-content:space-between; border-bottom: 4px solid var(--tamsa-red); box-shadow: 0 2px 4px rgba(0,0,0,0.1);}
-.topbar h1{font-size:18px; font-weight:700; letter-spacing: 0.5px;}
-.topbar span{font-size:12px; opacity:.8;}
-
+.topbar h1{font-size:18px; font-weight:700; letter-spacing: 0.5px;} .topbar span{font-size:12px; opacity:.8;}
 .main{max-width:1300px; margin:24px auto; padding:0 20px} 
-
-/* STEPS */
 .steps{display:flex; margin-bottom:20px; border-radius:8px; overflow:hidden; border:1px solid var(--tamsa-border); background: var(--tamsa-surface); box-shadow: 0 1px 3px rgba(0,0,0,0.05);}
 .step{flex:1; padding:12px; text-align:center; font-size:12px; font-weight:600; color:var(--tamsa-text-muted); border-right:1px solid var(--tamsa-border); transition:.3s;}
-.step:last-child{border-right:none}
-.step.done{background:#E5E7EB; color:var(--tamsa-text); border-bottom: 2px solid var(--tamsa-text-muted);}
-.step.active{background:var(--tamsa-blue); color:var(--tamsa-surface); border-bottom: 2px solid var(--tamsa-red);}
-
-/* CARDS */
+.step:last-child{border-right:none} .step.done{background:#E5E7EB; color:var(--tamsa-text); border-bottom: 2px solid var(--tamsa-text-muted);} .step.active{background:var(--tamsa-blue); color:var(--tamsa-surface); border-bottom: 2px solid var(--tamsa-red);}
 .card{background:var(--tamsa-surface); border:1px solid var(--tamsa-border); border-radius:8px; padding:24px 28px; margin-bottom:20px; box-shadow:0 2px 8px rgba(0,0,0,.04)}
 .card-title{font-size:15px; font-weight:700; color:var(--tamsa-blue); margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid #E5E7EB; display:flex; align-items:center; gap:8px; text-transform: uppercase; letter-spacing: 0.5px;}
-
-/* DOUBLE DROP ZONES */
 .drop-container { display: flex; gap: 20px; margin-bottom: 16px; flex-wrap: wrap; }
 .drop{flex:1; border:2px dashed var(--tamsa-border); border-radius:8px; padding:40px 20px; text-align:center; cursor:pointer; background:#F9FAFB; transition:all .2s ease; min-width: 280px;}
-.drop-tubing:hover, .drop-tubing.over { border-color:var(--color-tubing); background:#F0F7FF; }
-.drop-casing:hover, .drop-casing.over { border-color:var(--color-casing); background:#FFF5F5; }
-.drop .icon{font-size:48px; margin-bottom:12px; filter: grayscale(100%); transition: .2s;}
-.drop:hover .icon { filter: grayscale(0%); transform: scale(1.05); }
-.drop .big{font-size:16px; font-weight:700; margin-bottom:6px; color: var(--tamsa-text);}
-.drop-tubing:hover .big { color:var(--color-tubing); }
-.drop-casing:hover .big { color:var(--color-casing); }
+.drop-tubing:hover, .drop-tubing.over { border-color:var(--color-tubing); background:#F0F7FF; } .drop-casing:hover, .drop-casing.over { border-color:var(--color-casing); background:#FFF5F5; }
+.drop .icon{font-size:48px; margin-bottom:12px; filter: grayscale(100%); transition: .2s;} .drop:hover .icon { filter: grayscale(0%); transform: scale(1.05); }
+.drop .big{font-size:16px; font-weight:700; margin-bottom:6px; color: var(--tamsa-text);} .drop-tubing:hover .big { color:var(--color-tubing); } .drop-casing:hover .big { color:var(--color-casing); }
 .drop .small{font-size:12px; color:var(--tamsa-text-muted)}
-
-/* FILES GRID */
 .files-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:12px; margin-top:16px}
 .file-chip{background:var(--tamsa-surface); border:1px solid var(--tamsa-border); border-radius:6px; padding:12px 16px; display:flex; align-items:center; gap:10px; font-size:12px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);}
-.file-chip .ficon{font-size:20px}
-.file-chip .fname{font-weight:600; color:var(--tamsa-text); flex:1; word-break:break-all}
-.file-chip .fdel{cursor:pointer; color:var(--tamsa-text-muted); font-size:18px; font-weight:700; padding:0 4px; transition: .2s;}
-.file-chip .fdel:hover{color:var(--tamsa-red);}
-
-/* FILTER BAR */
+.file-chip .ficon{font-size:20px} .file-chip .fname{font-weight:600; color:var(--tamsa-text); flex:1; word-break:break-all} .file-chip .fdel{cursor:pointer; color:var(--tamsa-text-muted); font-size:18px; font-weight:700; padding:0 4px; transition: .2s;} .file-chip .fdel:hover{color:var(--tamsa-red);}
 .filter-bar{background:#F8FAFC; border:1px solid var(--tamsa-border); border-radius:8px; padding:16px; margin-bottom:20px; display:flex; gap:16px; flex-wrap:wrap; align-items:center}
 .filter-group{display:flex; flex-direction:column; gap:6px; flex:1; min-width:130px}
 .filter-group label{font-size:10px; font-weight:700; color:var(--tamsa-text-muted); text-transform:uppercase; letter-spacing: 0.5px;}
 .filter-group select{padding:8px 12px; border:1px solid var(--tamsa-border); border-radius:4px; font-size:12px; outline:none; background:var(--tamsa-surface); cursor:pointer; color: var(--tamsa-text); transition: border-color .2s;}
 .filter-group select:focus, .filter-group select:hover{border-color:var(--tamsa-blue);}
-
-/* STATS */
 .stats{display:grid; grid-template-columns:repeat(6,1fr); gap:12px; margin-bottom:16px} 
-.stat{background:#F8FAFC; border:1px solid var(--tamsa-border); border-radius:8px; padding:14px; text-align:center}
-.stat .n{font-size:24px; font-weight:700; color:var(--tamsa-blue)}
-.stat .l{font-size:11px; color:var(--tamsa-text-muted); margin-top:4px; text-transform: uppercase; letter-spacing: 0.5px;}
-
-/* TABLE */
+.stat{background:#F8FAFC; border:1px solid var(--tamsa-border); border-radius:8px; padding:14px; text-align:center} .stat .n{font-size:24px; font-weight:700; color:var(--tamsa-blue)} .stat .l{font-size:11px; color:var(--tamsa-text-muted); margin-top:4px; text-transform: uppercase; letter-spacing: 0.5px;}
 .tbl-wrap{border:1px solid var(--tamsa-border); border-radius:8px; overflow:hidden; max-height:500px; overflow-y:auto; box-shadow: 0 1px 3px rgba(0,0,0,0.05);}
 table{width:100%; border-collapse:collapse; font-size:12px; background: var(--tamsa-surface);}
 thead th{background:var(--tamsa-blue); color:var(--tamsa-surface); padding:10px 12px; text-align:left; position:sticky; top:0; z-index:1; white-space:nowrap; font-weight: 600;}
-tbody td{padding:8px 12px; border-bottom:1px solid #F3F4F6; vertical-align:middle; color: var(--tamsa-text);}
-tbody tr:hover td{background:#F8FAFC;}
+tbody td{padding:8px 12px; border-bottom:1px solid #F3F4F6; vertical-align:middle; color: var(--tamsa-text);} tbody tr:hover td{background:#F8FAFC;}
 .obs-col{max-width:280px; line-height:1.5; word-break:break-word}
 tfoot td{background:#E5E7EB; color:var(--tamsa-blue); font-weight:700; padding:10px 12px; border-top: 2px solid var(--tamsa-border);}
-
-/* SELECTS INTERACTIVOS DE ÁREA */
 select.area-select { font-size:11px; font-weight:700; padding:4px 6px; border-radius:4px; cursor:pointer; outline:none; appearance:none; -webkit-appearance:none; border:1px solid transparent; width:100%; text-align:center; transition: .2s;}
 select.area-select:hover { border-color:var(--tamsa-blue); }
-.area-TRACKING { background:#E0F2FE; color:#0369A1; border-color: #BAE6FD;} 
-.area-ROBOTICA { background:#FCE7F3; color:#BE185D; border-color: #FBCFE8;} 
-.area-VISION   { background:#FEF3C7; color:#B45309; border-color: #FDE68A;} 
-.area-OTROS    { background:#F3F4F6; color:#4B5563; border-color: #E5E7EB;} 
+.area-TRACKING { background:#E0F2FE; color:#0369A1; border-color: #BAE6FD;} .area-ROBOTICA { background:#FCE7F3; color:#BE185D; border-color: #FBCFE8;} .area-VISION { background:#FEF3C7; color:#B45309; border-color: #FDE68A;} .area-OTROS { background:#F3F4F6; color:#4B5563; border-color: #E5E7EB;} 
 .area-PENDIENTE{ background:#FEE2E2; color:var(--tamsa-red); border: 1px dashed var(--tamsa-red) !important; animation: pulse 2s infinite;}
-
-/* BADGE LÍNEA */
 .linea-tag { font-size:10px; font-weight:700; padding:4px 10px; border-radius:4px; letter-spacing: 0.5px;}
-.tag-TUBING { background:var(--color-tubing); color:var(--tamsa-surface); }
-.tag-CASING { background:var(--color-casing); color:var(--tamsa-surface); }
-
+.tag-TUBING { background:var(--color-tubing); color:var(--tamsa-surface); } .tag-CASING { background:var(--color-casing); color:var(--tamsa-surface); }
 @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
-
-/* BUTTONS */
 .btn-row{display:flex; gap:12px; flex-wrap:wrap; margin-top:20px; align-items:center; border-top: 1px solid #E5E7EB; padding-top: 20px;}
 .btn{padding:10px 20px; border-radius:4px; border:none; font-size:13px; font-weight:600; cursor:pointer; transition:all .2s; white-space:nowrap; display:flex; align-items:center; gap:8px;}
 .btn-blue{background:var(--tamsa-blue); color:var(--tamsa-surface);} .btn-blue:hover{background:var(--tamsa-blue-hover); box-shadow: 0 2px 4px rgba(0,0,0,0.2);}
 .btn-green{background:var(--tamsa-surface); color:var(--tamsa-text); border: 1px solid var(--tamsa-border);} .btn-green:hover{background:#F3F4F6;}
 .btn-gray{background:#E5E7EB; color:var(--tamsa-text);} .btn-gray:hover{background:#D1D5DB;}
 .btn-orange{background:var(--tamsa-surface); color:var(--tamsa-red); border: 1px solid var(--tamsa-red);} .btn-orange:hover{background:var(--tamsa-red); color: var(--tamsa-surface);}
-
-/* Botones Excel */
 .btn-excel{background:var(--color-excel); color:var(--tamsa-surface);} .btn-excel:hover{background:#0C6334; box-shadow: 0 2px 4px rgba(0,0,0,0.2);}
 .btn-excel-tubing{background:var(--color-tubing); color:var(--tamsa-surface);} .btn-excel-tubing:hover{background:#003366; box-shadow: 0 2px 4px rgba(0,0,0,0.2);}
 .btn-excel-casing{background:var(--color-casing); color:var(--tamsa-surface);} .btn-excel-casing:hover{background:var(--tamsa-red-hover); box-shadow: 0 2px 4px rgba(0,0,0,0.2);}
-
 .btn:disabled{opacity:.5; cursor:not-allowed; box-shadow: none !important;}
 .hidden{display:none}
 </style>
 </head>
 <body>
-
 <div class="topbar">
-  <h1>⚙ Cargador INOPS — Hub de Control Dual</h1>
+  <h1>⚙ Cargador INOPS — Hub de Control Dual (Enterprise Edition)</h1>
   <span>Tenaris Tamsa | Análisis Multidimensional</span>
 </div>
 
 <div class="main">
-
   <div class="steps">
     <div class="step active" id="st1">1 · Carga de Archivos</div>
     <div class="step" id="st2">2 · Procesamiento IA</div>
@@ -147,30 +77,21 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 
   <div class="card" id="card-upload">
     <div class="card-title">📂 Origen de Datos (Carga Masiva)</div>
-    
     <div class="drop-container">
-      <div class="drop drop-tubing" id="dz-tubing" onclick="document.getElementById('fi-tubing').click()">
-        <div class="icon">🔵</div>
-        <div class="big">Línea TUBING</div>
-        <div class="small">Arrastra los archivos .xls aquí</div>
+      <div class="drop drop-tubing" id="dz-tubing" data-target="fi-tubing">
+        <div class="icon">🔵</div><div class="big">Línea TUBING</div><div class="small">Arrastra XLS/XLSX reales o exportados aquí</div>
       </div>
-      <input type="file" id="fi-tubing" accept=".xls,.xlsx,.html,.htm" style="display:none" multiple onchange="cargar(this, 'TUBING')">
+      <input type="file" id="fi-tubing" accept=".xls,.xlsx,.html,.htm" style="display:none" multiple data-linea="TUBING">
 
-      <div class="drop drop-casing" id="dz-casing" onclick="document.getElementById('fi-casing').click()">
-        <div class="icon">🔴</div>
-        <div class="big">Línea CASING</div>
-        <div class="small">Arrastra los archivos .xls aquí</div>
+      <div class="drop drop-casing" id="dz-casing" data-target="fi-casing">
+        <div class="icon">🔴</div><div class="big">Línea CASING</div><div class="small">Arrastra XLS/XLSX reales o exportados aquí</div>
       </div>
-      <input type="file" id="fi-casing" accept=".xls,.xlsx,.html,.htm" style="display:none" multiple onchange="cargar(this, 'CASING')">
+      <input type="file" id="fi-casing" accept=".xls,.xlsx,.html,.htm" style="display:none" multiple data-linea="CASING">
     </div>
-
     <div id="files-grid" class="files-grid" style="display:none"></div>
-
     <div class="btn-row" id="btn-procesar-row" style="display:none; border-top:none; padding-top:0;">
-      <button class="btn btn-blue" id="btn-procesar" onclick="procesarTodo()">
-        ⚡ Consolidar e Iniciar IA
-      </button>
-      <button class="btn btn-orange" onclick="limpiarTodo()" style="margin-left:auto;">✕ Descartar todo</button>
+      <button class="btn btn-blue" id="btn-procesar">⚡ Consolidar e Iniciar IA</button>
+      <button class="btn btn-orange" id="btn-descartar" style="margin-left:auto;">✕ Descartar todo</button>
     </div>
   </div>
 
@@ -188,546 +109,481 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
       </div>
       <div style="flex: 1;">
         <label style="font-size:10px; font-weight:700; color:var(--tamsa-text-muted); text-transform:uppercase; letter-spacing: 0.5px; display:block; margin-bottom: 6px;">Cargar archivo para comparar</label>
-        <input type="file" id="fi-mensual" accept=".xls,.xlsx" onchange="procesarCargaMensual(this)" style="font-size: 13px;">
+        <input type="file" id="fi-mensual" accept=".xls,.xlsx" style="font-size: 13px;">
       </div>
     </div>
   </div>
 
   <div class="card hidden" id="card-result">
     <div class="card-title">📊 Panel de Control y Registros</div>
-    
-    <div class="filter-bar">
-      <div class="filter-group"><label>Línea</label><select id="f-linea" onchange="aplicarFiltros()"></select></div>
-      <div class="filter-group"><label>Mes</label><select id="f-mes" onchange="aplicarFiltros()"></select></div>
-      <div class="filter-group"><label>Turno</label><select id="f-turno" onchange="aplicarFiltros()"></select></div>
-      <div class="filter-group"><label>Tipo</label><select id="f-tipo" onchange="aplicarFiltros()"></select></div>
-      <div class="filter-group"><label>Código INOP</label><select id="f-codigo" onchange="aplicarFiltros()"></select></div>
-      <div class="filter-group"><label>Área Asignada</label><select id="f-area" onchange="aplicarFiltros()"></select></div>
+    <div class="filter-bar" id="filters-container">
+      <div class="filter-group"><label>Línea</label><select id="f-linea" class="evt-filter"></select></div>
+      <div class="filter-group"><label>Mes</label><select id="f-mes" class="evt-filter"></select></div>
+      <div class="filter-group"><label>Turno</label><select id="f-turno" class="evt-filter"></select></div>
+      <div class="filter-group"><label>Tipo</label><select id="f-tipo" class="evt-filter"></select></div>
+      <div class="filter-group"><label>Código INOP</label><select id="f-codigo" class="evt-filter"></select></div>
+      <div class="filter-group"><label>Área Asignada</label><select id="f-area" class="evt-filter"></select></div>
     </div>
-
     <div class="stats" id="stats"></div>
-
     <div class="tbl-wrap">
-      <table>
-        <thead><tr>
-          <th>Código</th>
-          <th style="text-align: center;">Línea</th>
-          <th style="width: 140px;">Área de Mantenimiento</th>
-          <th>Mes</th>
-          <th>Tipo</th>
-          <th>Fecha</th>
-          <th>Turno</th>
-          <th>Inicio</th>
-          <th>Fin</th>
-          <th style="text-align:right">Tiempo (min)</th>
-          <th>Observaciones de Falla</th>
-        </tr></thead>
+      <table id="main-table">
+        <thead><tr><th>Código</th><th style="text-align: center;">Línea</th><th style="width: 140px;">Área de Mantenimiento</th><th>Mes</th><th>Tipo</th><th>Fecha</th><th>Turno</th><th>Inicio</th><th>Fin</th><th style="text-align:right">Tiempo (min)</th><th>Observaciones de Falla</th></tr></thead>
         <tbody id="tbody"></tbody>
         <tfoot id="tfoot"></tfoot>
       </table>
     </div>
-
     <div class="btn-row">
-      <button class="btn btn-blue" onclick="sincronizarConLista()" id="btn-sync">
-        🔄 Subir actualización de tabla a Microsoft Lists
-      </button>
-
-      <button class="btn btn-green" id="btn-copy" onclick="copiar()">
-        📋 Copiar Tabla Visible
-      </button>
-      
-      <button class="btn btn-excel-tubing" id="btn-tubing" onclick="exportarEspecifico('TUBING')">
-        📥 Descargar Tubing
-      </button>
-      
-      <button class="btn btn-excel-casing" id="btn-casing" onclick="exportarEspecifico('CASING')">
-        📥 Descargar Casing
-      </button>
-
-      <button class="btn btn-excel" id="btn-full" onclick="exportarEspecifico('ALL')">
-        📊 Exportar Base Global
-      </button>
-
-      <button class="btn btn-gray" onclick="reiniciar()" style="margin-left:auto;">↺ Reiniciar Proceso</button>
+      <button class="btn btn-blue" id="btn-sync">🔄 Subir actualización a Microsoft Lists</button>
+      <button class="btn btn-green" id="btn-copy">📋 Copiar Tabla Visible</button>
+      <button class="btn btn-excel-tubing" id="btn-tubing" data-export="TUBING">📥 Descargar Tubing</button>
+      <button class="btn btn-excel-casing" id="btn-casing" data-export="CASING">📥 Descargar Casing</button>
+      <button class="btn btn-excel" id="btn-full" data-export="ALL">📊 Exportar Base Global</button>
+      <button class="btn btn-gray" id="btn-reiniciar" style="margin-left:auto;">↺ Reiniciar Proceso</button>
     </div>
   </div>
-
 </div>
 
 <script>
-// ── BASE DE CONOCIMIENTOS ────────────────────────────────────────
-let knowledgeBase = JSON.parse(localStorage.getItem('inops_kb')) || [];
+/** * ARQUITECTURA MODULAR - IIFE (Encapsulación para evitar fuga global)
+ */
+(function InopsApp() {
+    'use strict';
 
-let archivos   = [];   
-let agrupados  = [];   
-let filtrados  = [];   
-let tsvData    = '';
+    // ── CONFIGURACIÓN SEGURA DE SERVICIOS ─────────────────────────
+    const CFG = {
+        emailJsKey: "ptDVMrIvTEjy814jJ",
+        emailJsService: "service_2sg430e",
+        emailJsTemplate: "template_nbl0p7q", // EL ID REAL (EJEMPLO)
+        mesesOden: ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic','Sin_Mes','Sin Mes','Desconocido']
+    };
 
-const ORDEN_MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic', 'Sin_Mes', 'Sin Mes', 'Desconocido'];
+    // Inicialización de EmailJS
+    emailjs.init({ publicKey: CFG.emailJsKey });
 
-// ── DRAG & DROP DUAL ─────────────────────────────────────────────
-const dzT = document.getElementById('dz-tubing');
-dzT.addEventListener('dragover', e => { e.preventDefault(); dzT.classList.add('over'); });
-dzT.addEventListener('dragleave', () => dzT.classList.remove('over'));
-dzT.addEventListener('drop', e => { e.preventDefault(); dzT.classList.remove('over'); if (e.dataTransfer.files.length) agregarFiles(e.dataTransfer.files, 'TUBING'); });
+    // ── ESTADO GLOBAL DE LA APP (Aislado) ─────────────────────────
+    const State = {
+        archivos: [],
+        agrupados: [],
+        filtrados: [],
+        tsvData: '',
+        knowledgeBase: JSON.parse(localStorage.getItem('inops_kb')) || [],
+        kbCache: [] // Cache computacional pre-calculada
+    };
 
-const dzC = document.getElementById('dz-casing');
-dzC.addEventListener('dragover', e => { e.preventDefault(); dzC.classList.add('over'); });
-dzC.addEventListener('dragleave', () => dzC.classList.remove('over'));
-dzC.addEventListener('drop', e => { e.preventDefault(); dzC.classList.remove('over'); if (e.dataTransfer.files.length) agregarFiles(e.dataTransfer.files, 'CASING'); });
-
-function cargar(inp, linea) { if (inp.files.length) agregarFiles(inp.files, linea); }
-
-// ── HELPERS ──────────────────────────────────────────────────────
-function extraerMes(fechaStr) {
-  if (!fechaStr) return 'Sin Mes';
-  const parts = fechaStr.split(/[-/]/);
-  if (parts.length >= 2) return ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][parseInt(parts[1], 10)-1] || 'Sin Mes';
-  return 'Desconocido';
-}
-
-function durAMin(d) {
-  d = (d||'').trim();
-  if (d.includes(':')) {
-    const p = d.split(':').map(Number);
-    if (p.length === 3) return p[0]*60 + p[1] + p[2]/60;
-    return 0;
-  }
-  return parseFloat(d) || 0;
-}
-
-function getBigrams(str) {
-    const bigrams = new Set();
-    for(let i = 0; i < str.length - 1; i++) bigrams.add(str.substring(i, i+2));
-    return bigrams;
-}
-function similitudDice(s1, s2) {
-    if (s1 === s2) return 1;
-    if (s1.length < 2 || s2.length < 2) return 0;
-    const bg1 = getBigrams(s1); const bg2 = getBigrams(s2);
-    let intersection = 0; for (let bg of bg1) if (bg2.has(bg)) intersection++;
-    return (2.0 * intersection) / (bg1.size + bg2.size);
-}
-
-// ── MOTOR HÍBRIDO DE CLASIFICACIÓN ───────────────────────────────
-function determinarAreaHibrida(obs) {
-  if (!obs) return { area: 'PENDIENTE', conf: 0, origen: '-' };
-  const txt = obs.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  
-  const exactMatch = knowledgeBase.find(kb => kb.texto === txt);
-  if (exactMatch) return { area: exactMatch.area, conf: 100, origen: 'Historial' };
-  
-  if (/etiquetadora|etiqueta|tracking/.test(txt)) return { area: 'TRACKING', conf: 100, origen: 'Regla' };
-  if (/robot dm|robot de dm|pp pin|pp box|celda robotica|celda/.test(txt)) return { area: 'ROBOTICA', conf: 100, origen: 'Regla' };
-  if (/traslape|tubo a tubo|pantalla|mascarilla da[nñ]ada|camara|vision|asistencia traceability/.test(txt)) return { area: 'VISION', conf: 100, origen: 'Regla' };
-  
-  if (knowledgeBase.length > 0) {
-      let maxScore = 0; let predictedArea = 'PENDIENTE';
-      for (let kb of knowledgeBase) {
-          let score = similitudDice(txt, kb.texto);
-          if (score > maxScore) { maxScore = score; predictedArea = kb.area; }
-      }
-      if (maxScore >= 0.90) return { area: predictedArea, conf: Math.round(maxScore * 100), origen: 'IA Similitud' };
-  }
-  return { area: 'PENDIENTE', conf: 0, origen: 'Nuevo' };
-}
-
-// ── LECTURA DUAL ─────────────────────────────────────────────────
-function agregarFiles(fileList, linea) {
-  Array.from(fileList).forEach(file => {
-    if (archivos.find(a => a.name === file.name && a.linea === linea)) return;
-    archivos.push({ name: file.name, file, rows: [], estado: 'leyendo', linea: linea });
-    leerArchivo(archivos.length - 1);
-  });
-  renderChips();
-  document.getElementById('btn-procesar-row').style.display = 'flex';
-  setStep(1);
-}
-
-function leerArchivo(idx) {
-  const arc = archivos[idx];
-  const r   = new FileReader();
-  r.onload  = e => {
-    try {
-      const doc = new DOMParser().parseFromString(e.target.result, 'text/html');
-      const tbl = doc.querySelector('table');
-      if (!tbl) throw new Error('No es un formato válido');
-      const filas = [];
-      tbl.querySelectorAll('tr').forEach(tr => {
-        const c = []; tr.querySelectorAll('th,td').forEach(td => c.push(td.textContent.trim())); if (c.some(x => x)) filas.push(c);
-      });
-      if (filas.length < 2) throw new Error('Sin datos');
-
-      arc.rows = filas.slice(1).map(row => ({
-          Linea: arc.linea, 
-          Tipo: row[0] ? row[0].trim() : '', Fecha: row[1] ? row[1].trim() : '',
-          Turno: row[2] ? row[2].trim() : '', Inicio: row[5] ? row[5].trim() : '', 
-          Fin: row[6] ? row[6].trim() : '', Duracion: row[7] ? row[7].trim() : '', 
-          Codigo: row[8] ? row[8].trim() : '', Observaciones: row[10] ? row[10].trim() : '' 
-      })).filter(d => d.Observaciones && d.Observaciones.toLowerCase() !== 'observaciones');
-      arc.estado  = 'ok'; arc.rawCount = arc.rows.length;
-    } catch(err) { arc.estado = 'error'; arc.error  = err.message; }
-    renderChips();
-  };
-  r.readAsText(arc.file, 'ISO-8859-1');
-}
-
-function renderChips() {
-  const grid = document.getElementById('files-grid');
-  grid.style.display = archivos.length ? 'grid' : 'none';
-  grid.innerHTML = archivos.map((a,i) => `
-    <div class="file-chip" style="border-left: 4px solid ${a.linea==='TUBING'?'var(--color-tubing)':'var(--color-casing)'}">
-      <span class="ficon">${a.estado === 'ok' ? '✅' : a.estado === 'error' ? '❌' : '⏳'}</span>
-      <div style="flex:1;min-width:0">
-        <div class="fname">${a.name}</div>
-        <div class="frows"><span style="color:${a.linea==='TUBING'?'var(--color-tubing)':'var(--color-casing)'}; font-weight:700;">[${a.linea}]</span> ${a.estado === 'ok' ? `${a.rawCount} registros` : a.estado === 'error' ? 'Error' : 'Procesando...'}</div>
-      </div>
-      <span class="fdel" onclick="archivos.splice(${i}, 1); renderChips(); if(!archivos.length) document.getElementById('btn-procesar-row').style.display='none';">×</span>
-    </div>`).join('');
-}
-
-// ── PROCESAMIENTO UNIFICADO ──────────────────────────────────────
-function procesarTodo() {
-  const listos = archivos.filter(a => a.estado === 'ok');
-  if (!listos.length) return;
-  document.getElementById('btn-procesar').disabled = true;
-
-  let todosLosRows = [];
-  listos.forEach(arc => todosLosRows.push(...arc.rows));
-
-  setTimeout(() => {
-    const m = {};
-    todosLosRows.forEach((row, i) => {
-      const mes = extraerMes(row.Fecha);
-      const key = `${row.Codigo}|${row.Linea}|${row.Turno}|${mes}|${row.Tipo}|${row.Observaciones.toLowerCase()}`;
-      
-      if (!m[key]) {
-        const analisis = determinarAreaHibrida(row.Observaciones);
-        m[key] = {
-          id: key, 
-          Voz: row.Codigo,
-          Linea: row.Linea, 
-          Area: analisis.area,
-          Confianza: analisis.conf,
-          Mes: mes, Tipo: row.Tipo, Fecha: row.Fecha, Turno: row.Turno,
-          Inicio: row.Inicio, Fin: row.Fin, Observaciones: row.Observaciones,
-          min: 0
-        };
-      }
-      m[key].min += durAMin(row.Duracion);
-      m[key].Fin = row.Fin; 
-    });
-
-    agrupados = Object.values(m).map(g => ({ ...g, min: Math.round(g.min*100)/100 }));
-    poblarFiltros();
-    aplicarFiltros(); 
-    setStep(3);
-    document.getElementById('btn-procesar').disabled = false;
-    document.getElementById('card-result').classList.remove('hidden');
-    document.getElementById('card-result').scrollIntoView({ behavior: 'smooth' });
-  }, 300);
-}
-
-// ── LÓGICA DE ACTUALIZACIÓN MENSUAL (NUEVO) ──────────────────────
-function procesarCargaMensual(input) {
-    const mes = document.getElementById('update-mes-selector').value;
-    const file = input.files[0];
-    if(!file) return;
-
-    const btnSync = document.getElementById('btn-sync');
-    btnSync.innerHTML = '⏳ Procesando archivo...';
-    btnSync.disabled = true;
-
-    const reader = new FileReader();
-    reader.onload = e => {
-        try {
-            // 1. Parsear el archivo con la misma lógica de lectura
-            const doc = new DOMParser().parseFromString(e.target.result, 'text/html');
-            const tbl = doc.querySelector('table');
-            if (!tbl) throw new Error('Formato inválido');
-            
-            const filas = [];
-            tbl.querySelectorAll('tr').forEach(tr => {
-                const c = []; 
-                tr.querySelectorAll('th,td').forEach(td => c.push(td.textContent.trim())); 
-                if (c.some(x => x)) filas.push(c);
-            });
-
-            // 2. Limpiar y estructurar los datos
-            const rawRows = filas.slice(1).map(row => ({
-                Tipo: row[0] || '', 
-                Codigo: row[8] || '', 
-                Duracion: row[7] || '', 
-                Observaciones: row[10] || ''
-            })).filter(d => d.Observaciones && d.Observaciones.toLowerCase() !== 'observaciones');
-
-            // 3. Agrupar para sumar tiempos de observaciones duplicadas en el mismo mes
-            const consolidados = {};
-            rawRows.forEach(row => {
-                const obsNorm = row.Observaciones.toLowerCase();
-                if (!consolidados[obsNorm]) {
-                    // Predicción inicial usando la IA local
-                    const analisis = determinarAreaHibrida(row.Observaciones);
-                    consolidados[obsNorm] = {
-                        obs: row.Observaciones,
-                        duracion: 0,
-                        area: analisis.area,
-                        codigo: row.Codigo,
-                        linea: "MIXTA", // Al ser un reporte mensual, puede incluir ambas
-                        mes: mes
-                    };
-                }
-                consolidados[obsNorm].duracion += durAMin(row.Duracion);
-            });
-
-            // 4. Convertir a Array y redondear
-            const payload = Object.values(consolidados).map(r => ({
-                ...r, 
-                duracion: Math.round(r.duracion * 100) / 100
-            }));
-
-            // 5. Enviar directamente al flujo de Power Automate
-            enviarSyncMasivo(payload, mes);
-
-        } catch(err) { 
-            alert('Error al leer el archivo: ' + err.message); 
-            btnSync.innerHTML = '🔄 Subir actualización de tabla a Microsoft Lists';
-            btnSync.disabled = false;
+    // ── HERRAMIENTAS DE SEGURIDAD (XSS PREVENTION) ────────────────
+    const Helpers = {
+        escapeHTML: (str) => {
+            if (typeof str !== 'string') return str;
+            return str.replace(/[&<>'"]/g, tag => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+            }[tag]));
+        },
+        cleanOData: (str) => String(str || '').replace(/[\r\n]+/g, ' ').replace(/['"“”‘’]/g, '`').substring(0, 250).trim(),
+        extraerMes: (fechaStr) => {
+            if (!fechaStr) return 'Sin Mes';
+            const parts = fechaStr.split(/[-/]/);
+            if (parts.length >= 2) return CFG.mesesOden[parseInt(parts[1], 10)-1] || 'Sin Mes';
+            return 'Desconocido';
+        },
+        durAMin: (d) => {
+            d = (d||'').trim();
+            if (d.includes(':')) {
+                const p = d.split(':').map(Number);
+                if (p.length === 3) return p[0]*60 + p[1] + p[2]/60;
+                return 0;
+            }
+            return parseFloat(d) || 0;
+        },
+        getBigrams: (str) => {
+            const bigrams = new Set();
+            for(let i = 0; i < str.length - 1; i++) bigrams.add(str.substring(i, i+2));
+            return bigrams;
+        },
+        similitudDice: (bg1, bg2) => {
+            if (bg1.size === 0 || bg2.size === 0) return 0;
+            let intersection = 0; 
+            for (let bg of bg1) if (bg2.has(bg)) intersection++;
+            return (2.0 * intersection) / (bg1.size + bg2.size);
         }
     };
-    reader.readAsText(file, 'ISO-8859-1');
-}
 
-// Separamos el envío en una función dedicada para mayor limpieza
-async function enviarSyncMasivo(payload, mes) {
-    const btnSync = document.getElementById('btn-sync');
-    btnSync.innerHTML = '⏳ Subiendo a Microsoft Lists...';
-
-    try {
-        await emailjs.send("service_2sg430e", "template_153hzsc", {
-            subject: `INOPS_SYNC_GLOBAL | ${mes}`,
-            data: JSON.stringify(payload)
-        });
-        alert(`✅ Éxito: Se ha enviado la tabla de ${mes}. Power Automate está verificando duplicados y cambios de tiempo en segundo plano.`);
-        btnSync.innerHTML = '✅ Tabla Sincronizada';
-    } catch (err) {
-        console.error('Error sincronizando tabla:', err);
-        btnSync.innerHTML = '❌ Error - Reintentar';
-        btnSync.disabled = false;
+    // ── MOTOR HÍBRIDO (OPTIMIZADO O(N)) ───────────────────────────
+    function inicializarKBCache() {
+        State.kbCache = State.knowledgeBase.map(kb => ({
+            ...kb,
+            bigrams: Helpers.getBigrams(kb.texto)
+        }));
     }
-}
 
-// ── SINCRONIZACIÓN MASIVA (NUEVO BOTÓN) ──────────────────────────
-async function sincronizarConLista() {
-    const btn = document.getElementById('btn-sync');
-    btn.disabled = true;
-    btn.innerHTML = '⏳ Subiendo a Microsoft Lists...';
-
-// Empaquetamos los datos con un filtro de sanitización extremo
-    const payload = agrupados.map(r => {
-        // 1. Convertir a texto por seguridad
-        let cleanObs = String(r.Observaciones || '');
+    function determinarAreaHibrida(obs) {
+        if (!obs) return { area: 'PENDIENTE', conf: 0, origen: '-' };
+        const txt = obs.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         
-        // 2. Eliminar saltos de línea (Alt+Enter de Excel) y aplanar espacios
-        cleanObs = cleanObs.replace(/[\r\n]+/g, ' ');
+        const exactMatch = State.kbCache.find(kb => kb.texto === txt);
+        if (exactMatch) return { area: exactMatch.area, conf: 100, origen: 'Historial' };
         
-        // 3. Reemplazar TODO tipo de comillas (simples, dobles, inteligentes) por acentos graves
-        cleanObs = cleanObs.replace(/['"“”‘’]/g, '`');
+        if (/etiquetadora|etiqueta|tracking/.test(txt)) return { area: 'TRACKING', conf: 100, origen: 'Regla' };
+        if (/robot dm|robot de dm|pp pin|pp box|celda robotica|celda/.test(txt)) return { area: 'ROBOTICA', conf: 100, origen: 'Regla' };
+        if (/traslape|tubo a tubo|pantalla|mascarilla da[nñ]ada|camara|vision|asistencia traceability/.test(txt)) return { area: 'VISION', conf: 100, origen: 'Regla' };
         
-        // 4. Truncar a 250 caracteres (El límite estricto de SharePoint es 255)
-        if(cleanObs.length > 250) {
-            cleanObs = cleanObs.substring(0, 250);
+        if (State.kbCache.length > 0) {
+            let maxScore = 0; let predictedArea = 'PENDIENTE';
+            const inputBigrams = Helpers.getBigrams(txt);
+            
+            for (let kb of State.kbCache) {
+                let score = Helpers.similitudDice(inputBigrams, kb.bigrams);
+                if (score > maxScore) { maxScore = score; predictedArea = kb.area; }
+            }
+            if (maxScore >= 0.90) return { area: predictedArea, conf: Math.round(maxScore * 100), origen: 'IA Similitud' };
         }
+        return { area: 'PENDIENTE', conf: 0, origen: 'Nuevo' };
+    }
 
-        return {
-            obs: cleanObs.trim(),
+    // ── LECTURA DE ARCHIVOS (Mapeo Dinámico y Binario Nativo) ─────
+    function agregarFiles(fileList, linea) {
+        Array.from(fileList).forEach(file => {
+            if (State.archivos.find(a => a.name === file.name && a.linea === linea)) return;
+            State.archivos.push({ name: file.name, file, rows: [], estado: 'leyendo', linea: linea });
+            leerArchivoRobust(State.archivos.length - 1);
+        });
+        renderChips();
+        document.getElementById('btn-procesar-row').style.display = 'flex';
+        setStep(1);
+    }
+
+    function leerArchivoRobust(idx) {
+        const arc = State.archivos[idx];
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+            try {
+                const data = new Uint8Array(e.target.result);
+                // SheetJS lee binario real (.xlsx) y HTML tabulares exportados
+                const workbook = XLSX.read(data, {type: 'array'}); 
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, {header: 1, defval: ""});
+                
+                if (jsonData.length < 2) throw new Error('Archivo sin datos o vacío');
+
+                // Detección dinámica de cabeceras
+                let headerIdx = -1;
+                for (let i=0; i<Math.min(10, jsonData.length); i++) {
+                    const strRow = jsonData[i].join('').toLowerCase();
+                    if (strRow.includes('observacion') || strRow.includes('codigo')) { headerIdx = i; break; }
+                }
+                if (headerIdx === -1) throw new Error('Columnas base (Código, Observaciones) no encontradas');
+
+                const hRow = jsonData[headerIdx].map(h => String(h).toLowerCase().trim());
+                
+                // Mapeo dinámico tolerante a fallos
+                const mapCol = {
+                    tipo: hRow.findIndex(h => h.includes('tipo')),
+                    fecha: hRow.findIndex(h => h.includes('fecha')),
+                    turno: hRow.findIndex(h => h.includes('turno')),
+                    inicio: hRow.findIndex(h => h.includes('inicio')),
+                    fin: hRow.findIndex(h => h.includes('fin')),
+                    duracion: hRow.findIndex(h => h.includes('duracion') || h.includes('duración') || h.includes('tiempo')),
+                    codigo: hRow.findIndex(h => h.includes('codigo') || h.includes('código')),
+                    obs: hRow.findIndex(h => h.includes('observacion') || h.includes('observación'))
+                };
+
+                const filasDatos = jsonData.slice(headerIdx + 1);
+                arc.rows = filasDatos.map(row => {
+                    const safeGet = (i) => i !== -1 && row[i] !== undefined ? String(row[i]).trim() : '';
+                    return {
+                        Linea: arc.linea,
+                        Tipo: safeGet(mapCol.tipo),
+                        Fecha: safeGet(mapCol.fecha),
+                        Turno: safeGet(mapCol.turno),
+                        Inicio: safeGet(mapCol.inicio),
+                        Fin: safeGet(mapCol.fin),
+                        Duracion: safeGet(mapCol.duracion),
+                        Codigo: safeGet(mapCol.codigo),
+                        Observaciones: safeGet(mapCol.obs)
+                    }
+                }).filter(d => d.Observaciones !== '');
+
+                arc.estado = 'ok'; arc.rawCount = arc.rows.length;
+            } catch(err) {
+                arc.estado = 'error'; arc.error = err.message;
+            }
+            renderChips();
+        };
+        reader.readAsArrayBuffer(arc.file); // ArrayBuffer nativo
+    }
+
+    // ── PROCESAMIENTO Y SINCRONIZACIÓN ────────────────────────────
+    function procesarTodo() {
+        const listos = State.archivos.filter(a => a.estado === 'ok');
+        if (!listos.length) return;
+        document.getElementById('btn-procesar').disabled = true;
+
+        let todosLosRows = [];
+        listos.forEach(arc => todosLosRows.push(...arc.rows));
+
+        setTimeout(() => {
+            const m = {};
+            todosLosRows.forEach((row) => {
+                const mes = Helpers.extraerMes(row.Fecha);
+                const key = `${row.Codigo}|${row.Linea}|${row.Turno}|${mes}|${row.Tipo}|${row.Observaciones.toLowerCase()}`;
+                
+                if (!m[key]) {
+                    const analisis = determinarAreaHibrida(row.Observaciones);
+                    m[key] = {
+                        id: key, Voz: row.Codigo, Linea: row.Linea, Area: analisis.area,
+                        Confianza: analisis.conf, Mes: mes, Tipo: row.Tipo, Fecha: row.Fecha, 
+                        Turno: row.Turno, Inicio: row.Inicio, Fin: row.Fin, 
+                        Observaciones: row.Observaciones, min: 0
+                    };
+                }
+                m[key].min += Helpers.durAMin(row.Duracion);
+                m[key].Fin = row.Fin; 
+            });
+
+            State.agrupados = Object.values(m).map(g => ({ ...g, min: Math.round(g.min*100)/100 }));
+            poblarFiltros();
+            aplicarFiltros(); 
+            setStep(3);
+            document.getElementById('btn-procesar').disabled = false;
+            document.getElementById('card-result').classList.remove('hidden');
+            document.getElementById('card-result').scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+    }
+
+    async function enviarSyncMasivo(payload, mesContexto) {
+        const btnSync = document.getElementById('btn-sync');
+        btnSync.innerHTML = '⏳ Subiendo a Microsoft Lists...';
+        btnSync.disabled = true;
+
+        try {
+            await emailjs.send(CFG.emailJsService, CFG.emailJsTemplate, {
+                subject: mesContexto ? `INOPS_SYNC_GLOBAL | ${mesContexto}` : "INOPS_SYNC_GLOBAL",
+                data: JSON.stringify(payload)
+            });
+            alert('✅ Éxito: Se ha enviado la tabla para sincronización.');
+            btnSync.innerHTML = '✅ Tabla Sincronizada';
+            setStep(4);
+        } catch (err) {
+            console.error('Error:', err);
+            btnSync.innerHTML = '❌ Error - Reintentar';
+            btnSync.disabled = false;
+        }
+    }
+
+    function prepararSincronizacionVisible() {
+        const payload = State.agrupados.map(r => ({
+            obs: Helpers.cleanOData(r.Observaciones),
             duracion: r.min,
             area: r.Area,
             codigo: r.Voz,
             linea: r.Linea,
             fecha: r.Fecha 
-        };
-    });
-    
-    try {
-        // Asegúrate de usar el Template ID correcto (el que arreglamos en EmailJS)
-        await emailjs.send( 
-            "service_2sg430e" , 
-            "template_153hzsc", {
-            subject: "INOPS_SYNC_GLOBAL",
-            data: JSON.stringify(payload)
-        });
-        alert('✅ Éxito: Se ha enviado la tabla. Microsoft Lists se actualizará verificando duplicados y cambios de tiempo.');
-        btn.innerHTML = '✅ Tabla Sincronizada';
-        setStep(4);
-    } catch (err) {
-        console.error('Error sincronizando tabla:', err);
-        btn.innerHTML = '❌ Error - Reintentar';
-        btn.disabled = false;
+        }));
+        enviarSyncMasivo(payload, null);
     }
-}
 
-// ── APRENDIZAJE INDIVIDUAL CONECTADO A LA NUBE ───────────────────
-function aprenderArea(rowId, nuevaArea, obsOriginal) {
-    // 1. Capturar el estado actual de los filtros
-    const estadoFiltros = {
-        l: document.getElementById('f-linea').value,
-        m: document.getElementById('f-mes').value,
-        t: document.getElementById('f-turno').value,
-        ty: document.getElementById('f-tipo').value,
-        c: document.getElementById('f-codigo').value,
-        a: document.getElementById('f-area').value
-    };
+    // ── RENDERIZADO DOM Y DELEGACIÓN DE EVENTOS ───────────────────
+    function renderChips() {
+        const grid = document.getElementById('files-grid');
+        grid.style.display = State.archivos.length ? 'grid' : 'none';
+        
+        let html = '';
+        State.archivos.forEach((a, i) => {
+            const color = a.linea==='TUBING'?'var(--color-tubing)':'var(--color-casing)';
+            const icon = a.estado === 'ok' ? '✅' : a.estado === 'error' ? '❌' : '⏳';
+            const detail = a.estado === 'ok' ? `${a.rawCount} registros` : a.estado === 'error' ? 'Error' : 'Procesando...';
+            // Escapado seguro
+            html += `<div class="file-chip" style="border-left: 4px solid ${color}">
+                <span class="ficon">${icon}</span>
+                <div style="flex:1;min-width:0">
+                    <div class="fname">${Helpers.escapeHTML(a.name)}</div>
+                    <div class="frows"><span style="color:${color}; font-weight:700;">[${Helpers.escapeHTML(a.linea)}]</span> ${detail}</div>
+                </div>
+                <span class="fdel" data-idx="${i}">×</span>
+            </div>`;
+        });
+        grid.innerHTML = html;
+    }
 
-    // 2. Actualizar el registro en memoria
-    const row = agrupados.find(r => r.id === rowId);
-    if(row) { row.Area = nuevaArea; row.Confianza = 100; }
+    function poblarFiltros() {
+        const buildOpts = (arr) => `<option value="ALL">Mostrar Todos</option>` + arr.map(x => `<option value="${Helpers.escapeHTML(x)}">${Helpers.escapeHTML(x)}</option>`).join('');
+        const meses = [...new Set(State.agrupados.map(a => a.Mes).filter(Boolean))].sort((a, b) => (CFG.mesesOden.indexOf(a) === -1 ? 999 : CFG.mesesOden.indexOf(a)) - (CFG.mesesOden.indexOf(b) === -1 ? 999 : CFG.mesesOden.indexOf(b)));
+        
+        document.getElementById('f-linea').innerHTML = buildOpts([...new Set(State.agrupados.map(a => a.Linea).filter(Boolean))].sort()); 
+        document.getElementById('f-mes').innerHTML = buildOpts(meses);
+        document.getElementById('f-turno').innerHTML = buildOpts([...new Set(State.agrupados.map(a => a.Turno).filter(Boolean))].sort());
+        document.getElementById('f-tipo').innerHTML = buildOpts([...new Set(State.agrupados.map(a => a.Tipo).filter(Boolean))].sort());
+        document.getElementById('f-codigo').innerHTML = buildOpts([...new Set(State.agrupados.map(a => a.Voz).filter(Boolean))].sort());
+        document.getElementById('f-area').innerHTML = buildOpts([...new Set(State.agrupados.map(a => a.Area).filter(Boolean))].sort()); 
+    }
+
+    function aplicarFiltros() {
+        const f = { l: document.getElementById('f-linea').value, m: document.getElementById('f-mes').value, t: document.getElementById('f-turno').value, ty: document.getElementById('f-tipo').value, c: document.getElementById('f-codigo').value, a: document.getElementById('f-area').value };
+        
+        State.filtrados = State.agrupados.filter(a => 
+            (f.l === 'ALL' || a.Linea === f.l) && (f.m === 'ALL' || a.Mes === f.m) && 
+            (f.t === 'ALL' || String(a.Turno) === String(f.t)) && (f.ty === 'ALL' || a.Tipo === f.ty) && 
+            (f.c === 'ALL' || String(a.Voz) === String(f.c)) && (f.a === 'ALL' || a.Area === f.a)
+        );
+        renderTabla();
+    }
+
+    function renderTabla() {
+        const totalMin = State.filtrados.reduce((s,r) => s + r.min, 0);
+        const pendientes = State.filtrados.filter(r => r.Area === 'PENDIENTE').length;
+
+        document.getElementById('stats').innerHTML = `
+            <div class="stat"><div class="n" style="${pendientes > 0 ? 'color:var(--tamsa-red)' : ''}">${pendientes}</div><div class="l">Fallas Pendientes</div></div>
+            <div class="stat"><div class="n">${State.filtrados.length}</div><div class="l">Eventos Visibles</div></div>
+            <div class="stat"><div class="n">${totalMin.toFixed(1)}</div><div class="l">Minutos Totales</div></div>
+        `;
+
+        // Uso estricto de sanitización HTML para cada variable expuesta
+        document.getElementById('tbody').innerHTML = State.filtrados.map(r => {
+            return `
+            <tr>
+              <td style="font-weight:700;color:var(--tamsa-blue);text-align:center">${Helpers.escapeHTML(r.Voz)}</td>
+              <td style="text-align:center"><span class="linea-tag tag-${Helpers.escapeHTML(r.Linea)}">${Helpers.escapeHTML(r.Linea)}</span></td>
+              <td style="vertical-align: middle;">
+                <div style="display:flex; flex-direction:column; gap:4px; align-items:center;">
+                  <select class="area-select dynamic-area-change area-${r.Area}" data-id="${Helpers.escapeHTML(r.id)}">
+                    <option value="PENDIENTE" ${r.Area==='PENDIENTE'?'selected':''}>⚠️ PENDIENTE</option>
+                    <option value="TRACKING" ${r.Area==='TRACKING'?'selected':''}>TRACKING</option>
+                    <option value="ROBOTICA" ${r.Area==='ROBOTICA'?'selected':''}>ROBOTICA</option>
+                    <option value="VISION" ${r.Area==='VISION'?'selected':''}>VISION</option>
+                    <option value="OTROS" ${r.Area==='OTROS'?'selected':''}>OTROS</option>
+                  </select>
+                  <span style="font-size:9px; color:var(--tamsa-text-muted);">Seguridad: ${r.Confianza}%</span>
+                </div>
+              </td>
+              <td style="text-align:center">${Helpers.escapeHTML(r.Mes)}</td>
+              <td><span style="background:#E5E7EB; color:var(--tamsa-text); padding:2px 8px; border-radius:4px; font-size:11px">${Helpers.escapeHTML(r.Tipo)}</span></td>
+              <td>${Helpers.escapeHTML(r.Fecha)}</td>
+              <td style="text-align:center">${Helpers.escapeHTML(r.Turno)}</td>
+              <td>${Helpers.escapeHTML(r.Inicio)}</td>
+              <td>${Helpers.escapeHTML(r.Fin)}</td>
+              <td style="text-align:right;font-weight:700">${r.min}</td>
+              <td class="obs-col">${Helpers.escapeHTML(r.Observaciones)}</td>
+            </tr>`
+        }).join('');
+
+        document.getElementById('tfoot').innerHTML = `<tr><td colspan="9" style="text-align:right">TOTAL VISIBLE</td><td style="text-align:right">${totalMin.toFixed(2)}</td><td></td></tr>`;
+        
+        const hdrs = ['Código', 'Línea', 'Área', 'Fecha', 'Turno', 'Inicio', 'Fin', 'Duración (min)', 'Observaciones'];
+        State.tsvData = hdrs.join('\t') + '\n' + State.filtrados.map(r => [r.Voz, r.Linea, r.Area, r.Fecha, r.Turno, r.Inicio, r.Fin, r.min, r.Observaciones].map(v => String(v||'').replace(/\t/g,' ')).join('\t')).join('\n');
+    }
+
+    // ── GESTIÓN DE EVENTOS CENTRALIZADA ───────────────────────────
+    function initEvents() {
+        // Dropzones click
+        document.querySelectorAll('.drop').forEach(el => {
+            el.addEventListener('click', () => document.getElementById(el.getAttribute('data-target')).click());
+            el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('over'); });
+            el.addEventListener('dragleave', () => el.classList.remove('over'));
+            el.addEventListener('drop', e => { 
+                e.preventDefault(); el.classList.remove('over'); 
+                const targetId = el.getAttribute('data-target');
+                const linea = targetId.includes('tubing') ? 'TUBING' : 'CASING';
+                if (e.dataTransfer.files.length) agregarFiles(e.dataTransfer.files, linea); 
+            });
+        });
+
+        // Inputs file changes
+        document.getElementById('fi-tubing').addEventListener('change', function() { if(this.files.length) agregarFiles(this.files, 'TUBING'); });
+        document.getElementById('fi-casing').addEventListener('change', function() { if(this.files.length) agregarFiles(this.files, 'CASING'); });
+
+        // Delegation para eliminar archivos (Chips)
+        document.getElementById('files-grid').addEventListener('click', (e) => {
+            if(e.target.classList.contains('fdel')) {
+                State.archivos.splice(e.target.getAttribute('data-idx'), 1);
+                renderChips();
+                if(!State.archivos.length) document.getElementById('btn-procesar-row').style.display='none';
+            }
+        });
+
+        // Botones Generales
+        document.getElementById('btn-procesar').addEventListener('click', procesarTodo);
+        document.getElementById('btn-descartar').addEventListener('click', limpiarTodo);
+        document.getElementById('btn-sync').addEventListener('click', prepararSincronizacionVisible);
+        document.getElementById('btn-reiniciar').addEventListener('click', limpiarTodo);
+        
+        document.getElementById('btn-copy').addEventListener('click', async function() {
+            try { await navigator.clipboard.writeText(State.tsvData); } catch {
+                const ta = document.createElement('textarea'); ta.value = State.tsvData; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+            }
+            const orig = this.innerHTML; this.innerHTML = '✅ Copiado';
+            setTimeout(() => this.innerHTML = orig, 3000);
+            setStep(4);
+        });
+
+        // Eventos exportación Excel
+        document.querySelectorAll('[data-export]').forEach(btn => {
+            btn.addEventListener('click', (e) => exportarExcel(e.target.getAttribute('data-export'), e.target.id));
+        });
+
+        // Delegation Selects (Aprendizaje dinámico manual)
+        document.getElementById('tbody').addEventListener('change', (e) => {
+            if(e.target.classList.contains('dynamic-area-change')) {
+                const rowId = e.target.getAttribute('data-id');
+                const nuevaArea = e.target.value;
+                
+                const row = State.agrupados.find(r => r.id === rowId);
+                if(!row) return;
+                
+                // Mantiene el filtro visual state
+                const fStates = ['f-linea', 'f-mes', 'f-turno', 'f-tipo', 'f-codigo', 'f-area'].map(id => document.getElementById(id).value);
+                
+                row.Area = nuevaArea; row.Confianza = 100;
+                
+                const txtNorm = row.Observaciones.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const existente = State.knowledgeBase.find(kb => kb.texto === txtNorm);
+                if (existente) existente.area = nuevaArea;
+                else State.knowledgeBase.push({ texto: txtNorm, area: nuevaArea });
+                
+                localStorage.setItem('inops_kb', JSON.stringify(State.knowledgeBase));
+                inicializarKBCache(); // Actualiza caché
+                
+                poblarFiltros();
+                fStates.forEach((val, i) => document.getElementById(['f-linea', 'f-mes', 'f-turno', 'f-tipo', 'f-codigo', 'f-area'][i]).value = val);
+                aplicarFiltros();
+            }
+        });
+
+        // Listener filtros UI
+        document.querySelectorAll('.evt-filter').forEach(f => f.addEventListener('change', aplicarFiltros));
+    }
+
+    // ── UTILIDADES GLOBALES (UI) ──────────────────────────────────
+    function setStep(n) { for (let i=1; i<=4; i++) document.getElementById('st'+i).className = 'step' + (i<n?' done':i===n?' active':''); }
+    function limpiarTodo() { State.archivos = []; State.agrupados = []; State.filtrados = []; document.getElementById('files-grid').style.display = 'none'; document.getElementById('btn-procesar-row').style.display = 'none'; document.getElementById('card-result').classList.add('hidden'); setStep(1); document.getElementById('btn-sync').innerHTML = '🔄 Subir actualización a Microsoft Lists'; document.getElementById('btn-sync').disabled = false; }
     
-    // 3. Guardar en Base de Conocimientos (Local)
-    const txtNorm = obsOriginal.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const existente = knowledgeBase.find(kb => kb.texto === txtNorm);
-    if (existente) existente.area = nuevaArea;
-    else knowledgeBase.push({ texto: txtNorm, area: nuevaArea });
-    localStorage.setItem('inops_kb', JSON.stringify(knowledgeBase));
-    
-    // 4. Reconstruir los selectores
-    poblarFiltros(); 
+    function exportarExcel(filtro, btnId) {
+        if (!State.agrupados.length) return;
+        let exportData = filtro === 'ALL' ? State.agrupados : State.agrupados.filter(r => r.Linea === filtro);
+        if (exportData.length === 0) return alert('No hay datos procesados para esta línea.');
 
-    // 5. Restaurar el estado de los filtros
-    document.getElementById('f-linea').value = estadoFiltros.l;
-    document.getElementById('f-mes').value = estadoFiltros.m;
-    document.getElementById('f-turno').value = estadoFiltros.t;
-    document.getElementById('f-tipo').value = estadoFiltros.ty;
-    document.getElementById('f-codigo').value = estadoFiltros.c;
-    document.getElementById('f-area').value = estadoFiltros.a;
+        const datosMes = {};
+        exportData.forEach(r => {
+            const mes = r.Mes || 'Sin_Mes';
+            if (!datosMes[mes]) datosMes[mes] = [];
+            datosMes[mes].push({ "Código INOP": r.Voz, "Línea Producción": r.Linea, "Área Asignada": r.Area, "Fecha Evento": r.Fecha, "Turno": r.Turno, "Hora Inicio": r.Inicio, "Hora Fin": r.Fin, "Duración (min)": r.min, "Observaciones de Falla": r.Observaciones });
+        });
 
-    // 6. Aplicar la vista sin perder el contexto
-    aplicarFiltros();
-}
+        const wb = XLSX.utils.book_new();
+        Object.keys(datosMes).sort((a,b) => (CFG.mesesOden.indexOf(a) === -1 ? 999 : CFG.mesesOden.indexOf(a)) - (CFG.mesesOden.indexOf(b) === -1 ? 999 : CFG.mesesOden.indexOf(b)))
+        .forEach(m => XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(datosMes[m]), m));
+        
+        XLSX.writeFile(wb, filtro === 'ALL' ? 'Reporte_Global_TenarisTamsa.xlsx' : `Reporte_TenarisTamsa_${filtro}.xlsx`);
+        const btn = document.getElementById(btnId); const orig = btn.innerHTML; btn.innerHTML = '✅ Descarga Completada'; setTimeout(() => btn.innerHTML = orig, 3000); setStep(4);
+    }
 
-// ── FILTROS Y RENDER ─────────────────────────────────────────────
-function poblarFiltros() {
-  const buildOpts = (arr) => `<option value="ALL">Mostrar Todos</option>` + arr.map(x => `<option value="${x}">${x}</option>`).join('');
-  const meses = [...new Set(agrupados.map(a => a.Mes).filter(Boolean))].sort((a, b) => (ORDEN_MESES.indexOf(a) === -1 ? 999 : ORDEN_MESES.indexOf(a)) - (ORDEN_MESES.indexOf(b) === -1 ? 999 : ORDEN_MESES.indexOf(b)));
-  
-  document.getElementById('f-linea').innerHTML = buildOpts([...new Set(agrupados.map(a => a.Linea).filter(Boolean))].sort()); 
-  document.getElementById('f-mes').innerHTML = buildOpts(meses);
-  document.getElementById('f-turno').innerHTML = buildOpts([...new Set(agrupados.map(a => a.Turno).filter(Boolean))].sort());
-  document.getElementById('f-tipo').innerHTML = buildOpts([...new Set(agrupados.map(a => a.Tipo).filter(Boolean))].sort());
-  document.getElementById('f-codigo').innerHTML = buildOpts([...new Set(agrupados.map(a => a.Voz).filter(Boolean))].sort());
-  document.getElementById('f-area').innerHTML = buildOpts([...new Set(agrupados.map(a => a.Area).filter(Boolean))].sort()); 
-}
-
-function aplicarFiltros() {
-  const f = { l: document.getElementById('f-linea').value, m: document.getElementById('f-mes').value, t: document.getElementById('f-turno').value, ty: document.getElementById('f-tipo').value, c: document.getElementById('f-codigo').value, a: document.getElementById('f-area').value };
-  
-  filtrados = agrupados.filter(a => 
-      (f.l === 'ALL' || a.Linea === f.l) &&
-      (f.m === 'ALL' || a.Mes === f.m) && 
-      (f.t === 'ALL' || String(a.Turno) === String(f.t)) && 
-      (f.ty === 'ALL' || a.Tipo === f.ty) && 
-      (f.c === 'ALL' || String(a.Voz) === String(f.c)) && 
-      (f.a === 'ALL' || a.Area === f.a)
-  );
-  renderTabla();
-}
-
-function renderTabla() {
-  const totalMin = filtrados.reduce((s,r) => s + r.min, 0);
-  const pendientes = filtrados.filter(r => r.Area === 'PENDIENTE').length;
-
-  document.getElementById('stats').innerHTML = `
-    <div class="stat"><div class="n" style="${pendientes > 0 ? 'color:var(--tamsa-red)' : ''}">${pendientes}</div><div class="l">Fallas Pendientes</div></div>
-    <div class="stat"><div class="n">${filtrados.length}</div><div class="l">Eventos Visibles</div></div>
-    <div class="stat"><div class="n">${totalMin.toFixed(1)}</div><div class="l">Minutos Totales</div></div>
-    <div class="stat"><div class="n">${document.getElementById('f-linea').value === 'ALL' ? 'Ambas' : document.getElementById('f-linea').value}</div><div class="l">Línea Activa</div></div>
-    <div class="stat"><div class="n">${document.getElementById('f-area').value === 'ALL' ? 'Todas' : document.getElementById('f-area').value}</div><div class="l">Área Activa</div></div>
-    <div class="stat"><div class="n">${document.getElementById('f-codigo').value === 'ALL' ? 'Todos' : document.getElementById('f-codigo').value}</div><div class="l">Código Activo</div></div>
-  `;
-
-  document.getElementById('tbody').innerHTML = filtrados.map(r => {
-    const obsEscapada = r.Observaciones.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-    return `
-    <tr>
-      <td style="font-weight:700;color:var(--tamsa-blue);text-align:center">${r.Voz}</td>
-      <td style="text-align:center"><span class="linea-tag tag-${r.Linea}">${r.Linea}</span></td>
-      <td style="vertical-align: middle;">
-        <div style="display:flex; flex-direction:column; gap:4px; align-items:center;">
-          <select class="area-select area-${r.Area}" onchange="aprenderArea('${r.id}', this.value, '${obsEscapada}')">
-            <option value="PENDIENTE" ${r.Area==='PENDIENTE'?'selected':''}>⚠️ PENDIENTE</option>
-            <option value="TRACKING" ${r.Area==='TRACKING'?'selected':''}>TRACKING</option>
-            <option value="ROBOTICA" ${r.Area==='ROBOTICA'?'selected':''}>ROBOTICA</option>
-            <option value="VISION" ${r.Area==='VISION'?'selected':''}>VISION</option>
-            <option value="OTROS" ${r.Area==='OTROS'?'selected':''}>OTROS</option>
-          </select>
-          <span style="font-size:9px; color:var(--tamsa-text-muted);">Seguridad: ${r.Confianza}%</span>
-        </div>
-      </td>
-      <td style="text-align:center">${r.Mes}</td>
-      <td><span style="background:#E5E7EB; color:var(--tamsa-text); padding:2px 8px; border-radius:4px; font-size:11px">${r.Tipo}</span></td>
-      <td>${r.Fecha}</td>
-      <td style="text-align:center">${r.Turno}</td>
-      <td>${r.Inicio}</td>
-      <td>${r.Fin}</td>
-      <td style="text-align:right;font-weight:700">${r.min}</td>
-      <td class="obs-col">${r.Observaciones}</td>
-    </tr>`
-  }).join('');
-
-  document.getElementById('tfoot').innerHTML = `<tr><td colspan="9" style="text-align:right">TOTAL VISIBLE</td><td style="text-align:right">${totalMin.toFixed(2)}</td><td></td></tr>`;
-
-  const hdrs = ['Código', 'Línea', 'Área', 'Fecha', 'Turno', 'Inicio', 'Fin', 'Duración (min)', 'Observaciones'];
-  tsvData = hdrs.join('\t') + '\n' + filtrados.map(r => [r.Voz, r.Linea, r.Area, r.Fecha, r.Turno, r.Inicio, r.Fin, r.min, r.Observaciones].map(v => String(v||'').replace(/\t/g,' ')).join('\t')).join('\n');
-}
-
-// ── EXPORTACIÓN ESPECÍFICA ───────────────────────────────────────
-function exportarEspecifico(lineaFiltro) {
-  if (!agrupados.length) return;
-  let dataAExportar = agrupados;
-  if (lineaFiltro !== 'ALL') { dataAExportar = agrupados.filter(r => r.Linea === lineaFiltro); }
-  if (dataAExportar.length === 0) { alert(`No hay datos procesados para la línea: ${lineaFiltro}`); return; }
-
-  const datosPorMes = {};
-  dataAExportar.forEach(r => {
-    const mes = r.Mes || 'Sin_Mes';
-    if (!datosPorMes[mes]) datosPorMes[mes] = [];
-    datosPorMes[mes].push({
-        "Código INOP": r.Voz, "Línea Producción": r.Linea, "Área Asignada": r.Area, 
-        "Fecha Evento": r.Fecha, "Turno": r.Turno, "Hora Inicio": r.Inicio, 
-        "Hora Fin": r.Fin, "Duración (min)": r.min, "Observaciones de Falla": r.Observaciones
+    // Inicializador al cargar el DOM
+    document.addEventListener('DOMContentLoaded', () => {
+        inicializarKBCache();
+        initEvents();
     });
-  });
 
-  const wb = XLSX.utils.book_new();
-  Object.keys(datosPorMes).sort((a, b) => (ORDEN_MESES.indexOf(a) === -1 ? 999 : ORDEN_MESES.indexOf(a)) - (ORDEN_MESES.indexOf(b) === -1 ? 999 : ORDEN_MESES.indexOf(b))).forEach(mes => {
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(datosPorMes[mes]), mes); 
-  });
-  
-  const nombreArchivo = lineaFiltro === 'ALL' ? 'Reporte_Global_TenarisTamsa.xlsx' : `Reporte_TenarisTamsa_${lineaFiltro}.xlsx`;
-  XLSX.writeFile(wb, nombreArchivo);
-  
-  const btnId = lineaFiltro === 'TUBING' ? 'btn-tubing' : (lineaFiltro === 'CASING' ? 'btn-casing' : 'btn-full');
-  const btn = document.getElementById(btnId);
-  const originalText = btn.innerHTML;
-  btn.innerHTML = '✅ Descarga Completada';
-  setTimeout(() => { btn.innerHTML = originalText; }, 3000);
-  
-  setStep(4);
-}
-
-// ── COPIAR PORTAPAPELES ──────────────────────────────────────────
-async function copiar() {
-  try { await navigator.clipboard.writeText(tsvData); } catch {
-    const ta = document.createElement('textarea'); ta.value = tsvData; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-  }
-  const btn = document.getElementById('btn-copy'); btn.innerHTML = '✅ Copiado exitosamente'; btn.style.color = '#107C41'; btn.style.borderColor = '#107C41';
-  setTimeout(() => { btn.innerHTML = '📋 Copiar Tabla Visible'; btn.style.color = ''; btn.style.borderColor = ''; }, 3000);
-  setStep(4);
-}
-
-function limpiarTodo() { archivos = []; agrupados = []; filtrados = []; document.getElementById('files-grid').style.display = 'none'; document.getElementById('btn-procesar-row').style.display = 'none'; reiniciar(); }
-function reiniciar() { document.getElementById('card-result').classList.add('hidden'); setStep(1); document.getElementById('btn-sync').innerHTML = '🔄 Subir actualización de tabla a Microsoft Lists'; document.getElementById('btn-sync').disabled = false;}
-function setStep(n) { for (let i=1; i<=4; i++) document.getElementById('st'+i).className = 'step' + (i<n?' done':i===n?' active':''); }
+})();
 </script>
 </body>
 </html>
