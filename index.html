@@ -2,13 +2,13 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Cargador INOPS Multi-Línea V8.4 - Frontend Inteligente</title>
+<title>Cargador INOPS Multi-Línea V8.6 - Consolidación Estricta</title>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
 
 <style>
-/* ── PALETA CORPORATIVA Y DISEÑO UI MANTENIDO INTACTO ── */
+/* ── PALETA CORPORATIVA Y DISEÑO UI ── */
 :root { --tamsa-blue: #002D62; --tamsa-blue-hover: #001A3B; --tamsa-red: #D22730; --tamsa-red-hover: #A11D25; --tamsa-bg: #F0F2F5; --tamsa-surface: #FFFFFF; --tamsa-border: #D1D5DB; --tamsa-text: #1F2937; --tamsa-text-muted: #6B7280; --color-tubing: #004085; --color-casing: #D22730; --color-excel: #107C41; }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family: 'Segoe UI', Arial, sans-serif; background:var(--tamsa-bg); color:var(--tamsa-text); font-size:14px; line-height: 1.5;}
@@ -65,7 +65,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 <body>
 
 <div class="topbar">
-  <h1>⚙ Cargador INOPS — Hub de Control Dual (Enterprise AI Edition V8.4)</h1>
+  <h1>⚙ Cargador INOPS — Hub de Control Dual (Enterprise V8.6)</h1>
   <span>Tenaris Tamsa | Análisis Multidimensional</span>
 </div>
 
@@ -78,7 +78,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
   </div>
 
   <div class="card" id="card-upload">
-    <div class="card-title">📂 Origen de Datos (Carga Masiva)</div>
+    <div class="card-title">📂 Origen de Datos (Carga Masiva Inicial)</div>
     <div class="drop-container">
       <div class="drop drop-tubing" id="dz-tubing" data-target="fi-tubing">
         <div class="icon">🔵</div><div class="big">Línea TUBING</div><div class="small">Arrastra XLS/XLSX reales o exportados aquí</div>
@@ -98,7 +98,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
   </div>
 
   <div class="card">
-    <div class="card-title">📅 Actualización de Tabla (Auto-Detectada)</div>
+    <div class="card-title">📅 Actualización de Tabla (Auto-Detectada y Consolidada)</div>
     <div style="display:flex; gap:16px; border-top: 1px solid var(--tamsa-border); padding-top: 16px;">
       <div style="flex: 1;">
         <label style="font-size:10px; font-weight:700; color:var(--tamsa-text-muted); text-transform:uppercase; letter-spacing: 0.5px; display:block; margin-bottom: 8px;">Cargar histórico exclusivo de TUBING</label>
@@ -143,7 +143,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 </div>
 
 <script>
-/** * ARQUITECTURA MODULAR - IIFE */
 (function InopsApp() {
     'use strict';
 
@@ -169,7 +168,14 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                 '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
             }[tag]));
         },
-        cleanOData: (str) => String(str || '').replace(/[\r\n]+/g, ' ').replace(/['"“”‘’]/g, '`').substring(0, 250).trim(),
+        cleanOData: (str) => {
+            return String(str || '')
+                .replace(/[\r\n]+/g, ' ')      
+                .replace(/['"“”‘’]/g, '`')     
+                .replace(/\s+/g, ' ')          
+                .substring(0, 250)             
+                .trim();                       
+        },
         extraerMes: (fechaStr) => {
             if (!fechaStr) return 'Sin Mes';
             const parts = fechaStr.split(/[-/]/);
@@ -188,11 +194,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
     };
 
     function inicializarKBCache() {
-        const opcionesFuse = {
-            includeScore: true,
-            threshold: 0.35, 
-            keys: ['texto']
-        };
+        const opcionesFuse = { includeScore: true, threshold: 0.35, keys: ['texto'] };
         State.fuseInstance = new Fuse(State.knowledgeBase, opcionesFuse);
     }
 
@@ -225,7 +227,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
             const textStr = new TextDecoder('iso-8859-1').decode(resultBuffer);
             const doc = new DOMParser().parseFromString(textStr, 'text/html');
             const tbl = doc.querySelector('table');
-            if (!tbl) throw new Error('Tabla no encontrada en el documento');
+            if (!tbl) throw new Error('Tabla no encontrada');
 
             const filas = [];
             tbl.querySelectorAll('tr').forEach(tr => {
@@ -240,9 +242,8 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                     headerIdx = i; hRow = filas[i].map(h => String(h).toLowerCase().trim()); break; 
                 }
             }
-            if (headerIdx === -1) throw new Error('Columnas base no encontradas en HTML');
+            if (headerIdx === -1) throw new Error('Columnas base no encontradas');
             filasDatos = filas.slice(headerIdx + 1);
-
         } else {
             const workbook = XLSX.read(resultBuffer, {type: 'array'});
             const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -254,7 +255,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                     headerIdx = i; hRow = jsonData[i].map(h => String(h).toLowerCase().trim()); break; 
                 }
             }
-            if (headerIdx === -1) throw new Error('Columnas base no encontradas en Binario');
+            if (headerIdx === -1) throw new Error('Columnas base no encontradas');
             filasDatos = jsonData.slice(headerIdx + 1);
         }
 
@@ -279,6 +280,46 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                 Codigo: safeGet(mapCol.codigo), Observaciones: safeGet(mapCol.obs)
             };
         }).filter(d => d.Observaciones !== '' && d.Observaciones.toLowerCase() !== 'observaciones');
+    }
+
+    // ── MOTOR ÚNICO DE CONSOLIDACIÓN (Evita Discrepancias) ──
+    function consolidarDatosUnificados(rawRows, lineaForzada) {
+        const consolidados = {};
+        
+        rawRows.forEach(row => {
+            const obsClean = Helpers.cleanOData(row.Observaciones);
+            const obsNorm = obsClean.toLowerCase();
+            const fecha = (row.Fecha || '').trim();
+            const linea = lineaForzada ? lineaForzada.trim().toUpperCase() : (row.Linea || '').trim().toUpperCase();
+            
+            // LA LLAVE MAESTRA: Fecha + Línea + Observación (Ignorando Tipo)
+            const key = `${fecha}|${linea}|${obsNorm}`; 
+            
+            if (!consolidados[key]) {
+                const analisis = determinarAreaHibrida(obsClean);
+                consolidados[key] = {
+                    id: key,
+                    Voz: (row.Codigo || '').trim(),
+                    Linea: linea,
+                    Area: analisis.area,
+                    Confianza: analisis.conf,
+                    Mes: Helpers.extraerMes(fecha),
+                    Tipo: (row.Tipo || 'Consolidado').trim(), 
+                    Fecha: fecha,
+                    Turno: (row.Turno || '').trim(),
+                    Inicio: (row.Inicio || '').trim(),
+                    Fin: (row.Fin || '').trim(),
+                    Observaciones: obsClean,
+                    min: 0
+                };
+            }
+            
+            // Acumulación de tiempos de la misma falla
+            consolidados[key].min += Helpers.durAMin(row.Duracion);
+            if (row.Fin && row.Fin.trim() !== '') consolidados[key].Fin = row.Fin.trim();
+        });
+
+        return Object.values(consolidados).map(g => ({ ...g, min: Math.round(g.min*100)/100 }));
     }
 
     function agregarFiles(fileList, linea) {
@@ -317,25 +358,9 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         listos.forEach(arc => todosLosRows.push(...arc.rows));
 
         setTimeout(() => {
-            const m = {};
-            todosLosRows.forEach((row) => {
-                const mes = Helpers.extraerMes(row.Fecha);
-                const key = `${row.Codigo}|${row.Linea}|${row.Turno}|${mes}|${row.Tipo}|${row.Observaciones.toLowerCase()}`;
-                
-                if (!m[key]) {
-                    const analisis = determinarAreaHibrida(row.Observaciones);
-                    m[key] = {
-                        id: key, Voz: row.Codigo, Linea: row.Linea, Area: analisis.area,
-                        Confianza: analisis.conf, Mes: mes, Tipo: row.Tipo, Fecha: row.Fecha, 
-                        Turno: row.Turno, Inicio: row.Inicio, Fin: row.Fin, 
-                        Observaciones: row.Observaciones, min: 0
-                    };
-                }
-                m[key].min += Helpers.durAMin(row.Duracion);
-                m[key].Fin = row.Fin; 
-            });
-
-            State.agrupados = Object.values(m).map(g => ({ ...g, min: Math.round(g.min*100)/100 }));
+            // USAMOS EL MISMO MOTOR PARA LA VISTA UI
+            State.agrupados = consolidarDatosUnificados(todosLosRows, null);
+            
             poblarFiltros();
             aplicarFiltros(); 
             setStep(3);
@@ -345,46 +370,29 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         }, 100);
     }
 
-    // ── LÓGICA DE AUTO-DETECCIÓN Y CHUNKING (V8.4) ──
     async function procesarCargaMensual(input, lineaAsignada) {
         const file = input.files[0];
         if(!file) return;
 
         const btnSync = document.getElementById('btn-sync');
-        btnSync.innerHTML = '⏳ Analizando y agrupando datos...';
+        btnSync.innerHTML = '⏳ Analizando datos...';
         btnSync.disabled = true;
 
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {
                 const rawRows = parsearArchivoUniversal(e.target.result);
-                const consolidados = {};
                 
-                rawRows.forEach(row => {
-                    const obsNorm = row.Observaciones.toLowerCase();
-                    const key = `${obsNorm}|${row.Fecha}`; 
-                    
-                    if (!consolidados[key]) {
-                        const analisis = determinarAreaHibrida(row.Observaciones);
-                        consolidados[key] = {
-                            obs: row.Observaciones,
-                            duracion: 0,
-                            area: analisis.area,
-                            codigo: row.Codigo,
-                            linea: lineaAsignada, 
-                            fecha: row.Fecha 
-                        };
-                    }
-                    consolidados[key].duracion += Helpers.durAMin(row.Duracion);
-                });
+                // USAMOS EL MISMO MOTOR PARA EL ENVÍO A POWER AUTOMATE
+                const datosUnificados = consolidarDatosUnificados(rawRows, lineaAsignada);
 
-                const payloadCompleto = Object.values(consolidados).map(r => ({
-                    obs: Helpers.cleanOData(r.obs),
-                    duracion: Math.round(r.duracion * 100) / 100,
-                    area: r.area,
-                    codigo: r.codigo,
-                    linea: r.linea,
-                    fecha: r.fecha
+                const payloadCompleto = datosUnificados.map(r => ({
+                    obs: r.Observaciones,
+                    duracion: r.min,
+                    area: r.Area,
+                    codigo: r.Voz,
+                    linea: r.Linea,
+                    fecha: r.Fecha
                 }));
 
                 input.value = ''; 
@@ -396,7 +404,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                     return;
                 }
 
-                // CHUNKING: Cortar en pedazos de 50 registros
                 const CHUNK_SIZE = 50;
                 const totalChunks = Math.ceil(payloadCompleto.length / CHUNK_SIZE);
 
@@ -405,16 +412,15 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                     const contexto = `Lote ${i + 1}/${totalChunks} | ${lineaAsignada}`;
                     
                     btnSync.innerHTML = `⏳ Enviando ${contexto}...`;
-                    
                     await enviarSyncMasivo(chunk, contexto, false);
                 }
 
-                alert(`✅ Éxito: Se enviaron ${payloadCompleto.length} registros en ${totalChunks} lote(s). Power Automate procesará la información en segundo plano.`);
+                alert(`✅ Éxito: Se enviaron ${payloadCompleto.length} registros SIN DUPLICADOS. Power Automate actualizará la base de datos.`);
                 btnSync.innerHTML = '✅ Actualización Completada';
                 setStep(4);
 
             } catch(err) { 
-                alert('Error al procesar el archivo: ' + err.message); 
+                alert('Error: ' + err.message); 
                 btnSync.innerHTML = '🔄 Subir actualización a Microsoft Lists';
                 btnSync.disabled = false;
                 input.value = '';
@@ -425,10 +431,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 
     async function enviarSyncMasivo(payload, contexto, showFinalAlert = true) {
         const btnSync = document.getElementById('btn-sync');
-        if(showFinalAlert) {
-            btnSync.innerHTML = '⏳ Subiendo a Microsoft Lists...';
-            btnSync.disabled = true;
-        }
+        if(showFinalAlert) { btnSync.innerHTML = '⏳ Subiendo a Microsoft Lists...'; btnSync.disabled = true; }
 
         try {
             await emailjs.send(CFG.emailJsService, CFG.emailJsTemplate, {
@@ -437,40 +440,30 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
             });
             
             if(showFinalAlert) {
-                alert(`✅ Éxito: Se enviaron los datos. Power Automate comparará y actualizará la base de datos.`);
+                alert(`✅ Éxito: Se enviaron los datos.`);
                 btnSync.innerHTML = '✅ Tabla Sincronizada';
                 setStep(4);
             }
         } catch (err) {
             console.error('Error:', err);
-            if(showFinalAlert) {
-                btnSync.innerHTML = '❌ Error - Reintentar';
-                btnSync.disabled = false;
-            }
+            if(showFinalAlert) { btnSync.innerHTML = '❌ Error - Reintentar'; btnSync.disabled = false; }
             throw err; 
         }
     }
 
     function prepararSincronizacionVisible() {
         const payload = State.agrupados.map(r => ({
-            obs: Helpers.cleanOData(r.Observaciones),
-            duracion: r.min,
-            area: r.Area,
-            codigo: r.Voz,
-            linea: r.Linea,
-            fecha: r.Fecha 
+            obs: r.Observaciones, duracion: r.min, area: r.Area,
+            codigo: r.Voz, linea: r.Linea, fecha: r.Fecha 
         }));
         
-        const CHUNK_SIZE = 50;
-        if(payload.length > CHUNK_SIZE) {
-            alert(`Para sincronizar la vista actual de ${payload.length} registros, por favor usa los botones de "Auto-Actualizar" en la sección superior para garantizar la integridad de los lotes.`);
+        if(payload.length > 50) {
+            alert(`Para sincronizar más de 50 registros, usa los botones de "Auto-Actualizar" en la sección superior para garantizar el particionado correcto.`);
             return;
         }
-        
         enviarSyncMasivo(payload, null, true);
     }
 
-    // ── RENDERIZADO DOM Y DELEGACIÓN DE EVENTOS ───────────────────
     function renderChips() {
         const grid = document.getElementById('files-grid');
         grid.style.display = State.archivos.length ? 'grid' : 'none';
@@ -578,7 +571,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         document.getElementById('fi-tubing').addEventListener('change', function() { if(this.files.length) agregarFiles(this.files, 'TUBING'); });
         document.getElementById('fi-casing').addEventListener('change', function() { if(this.files.length) agregarFiles(this.files, 'CASING'); });
         
-        // Eventos para carga mensual auto-detectada
         document.getElementById('btn-mensual-tubing').addEventListener('click', () => document.getElementById('fi-mensual-tubing').click());
         document.getElementById('btn-mensual-casing').addEventListener('click', () => document.getElementById('fi-mensual-casing').click());
         document.getElementById('fi-mensual-tubing').addEventListener('change', function() { if(this.files.length) procesarCargaMensual(this, 'TUBING'); });
