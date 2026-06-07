@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Cargador INOPS Multi-Línea V8.2 - Enterprise AI Edition</title>
+<title>Cargador INOPS Multi-Línea V8.3 - Enterprise AI Edition</title>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
@@ -50,7 +50,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 .tag-TUBING { background:var(--color-tubing); color:var(--tamsa-surface); } .tag-CASING { background:var(--color-casing); color:var(--tamsa-surface); }
 @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 .btn-row{display:flex; gap:12px; flex-wrap:wrap; margin-top:20px; align-items:center; border-top: 1px solid #E5E7EB; padding-top: 20px;}
-.btn{padding:10px 20px; border-radius:4px; border:none; font-size:13px; font-weight:600; cursor:pointer; transition:all .2s; white-space:nowrap; display:flex; align-items:center; gap:8px;}
+.btn{padding:10px 20px; border-radius:4px; border:none; font-size:13px; font-weight:600; cursor:pointer; transition:all .2s; white-space:nowrap; display:flex; align-items:center; gap:8px; justify-content:center;}
 .btn-blue{background:var(--tamsa-blue); color:var(--tamsa-surface);} .btn-blue:hover{background:var(--tamsa-blue-hover); box-shadow: 0 2px 4px rgba(0,0,0,0.2);}
 .btn-green{background:var(--tamsa-surface); color:var(--tamsa-text); border: 1px solid var(--tamsa-border);} .btn-green:hover{background:#F3F4F6;}
 .btn-gray{background:#E5E7EB; color:var(--tamsa-text);} .btn-gray:hover{background:#D1D5DB;}
@@ -65,7 +65,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 <body>
 
 <div class="topbar">
-  <h1>⚙ Cargador INOPS — Hub de Control Dual (Enterprise AI Edition V8.2)</h1>
+  <h1>⚙ Cargador INOPS — Hub de Control Dual (Enterprise AI Edition V8.3)</h1>
   <span>Tenaris Tamsa | Análisis Multidimensional</span>
 </div>
 
@@ -98,8 +98,9 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
   </div>
 
   <div class="card">
-    <div class="card-title">📅 Actualización de Tabla Mensual (Persistencia)</div>
-    <div style="display:flex; gap:16px; align-items:center; flex-wrap: wrap;">
+    <div class="card-title">📅 Actualización de Tabla Mensual (Segmentada)</div>
+    <div style="display:flex; gap:24px; align-items:center; flex-wrap: wrap;">
+      
       <div class="filter-group" style="flex: 0 1 auto; min-width: 150px;">
         <label>Mes a Sincronizar</label>
         <select id="update-mes-selector" style="width: 100%;">
@@ -109,10 +110,21 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
           <option value="Oct">Octubre</option><option value="Nov">Noviembre</option><option value="Dic">Diciembre</option>
         </select>
       </div>
-      <div style="flex: 1;">
-        <label style="font-size:10px; font-weight:700; color:var(--tamsa-text-muted); text-transform:uppercase; letter-spacing: 0.5px; display:block; margin-bottom: 6px;">Cargar archivo para comparar</label>
-        <input type="file" id="fi-mensual" accept=".xls,.xlsx,.html" style="font-size: 13px;">
+
+      <div style="flex: 1; display: flex; gap: 16px; border-left: 1px solid var(--tamsa-border); padding-left: 24px;">
+        <div style="flex: 1;">
+          <label style="font-size:10px; font-weight:700; color:var(--tamsa-text-muted); text-transform:uppercase; letter-spacing: 0.5px; display:block; margin-bottom: 8px;">Cargar archivo exclusivo de TUBING</label>
+          <button class="btn btn-excel-tubing" id="btn-mensual-tubing" style="width: 100%;">🔵 Actualizar TUBING</button>
+          <input type="file" id="fi-mensual-tubing" accept=".xls,.xlsx,.html" style="display:none;">
+        </div>
+        
+        <div style="flex: 1;">
+          <label style="font-size:10px; font-weight:700; color:var(--tamsa-text-muted); text-transform:uppercase; letter-spacing: 0.5px; display:block; margin-bottom: 8px;">Cargar archivo exclusivo de CASING</label>
+          <button class="btn btn-excel-casing" id="btn-mensual-casing" style="width: 100%;">🔴 Actualizar CASING</button>
+          <input type="file" id="fi-mensual-casing" accept=".xls,.xlsx,.html" style="display:none;">
+        </div>
       </div>
+
     </div>
   </div>
 
@@ -146,11 +158,10 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 </div>
 
 <script>
-/** * ARQUITECTURA MODULAR - IIFE (Encapsulación para evitar fuga global) */
+/** * ARQUITECTURA MODULAR - IIFE */
 (function InopsApp() {
     'use strict';
 
-    // ── CONFIGURACIÓN SEGURA DE SERVICIOS ─────────────────────────
     const CFG = {
         emailJsKey: "ptDVMrIvTEjy814jJ",
         emailJsService: "service_2sg430e",
@@ -160,14 +171,12 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 
     emailjs.init({ publicKey: CFG.emailJsKey });
 
-    // ── ESTADO GLOBAL DE LA APP (Aislado) ─────────────────────────
     const State = {
         archivos: [], agrupados: [], filtrados: [], tsvData: '',
         knowledgeBase: JSON.parse(localStorage.getItem('inops_kb')) || [],
         fuseInstance: null
     };
 
-    // ── HERRAMIENTAS DE SEGURIDAD Y PARSEO ────────────────────────
     const Helpers = {
         escapeHTML: (str) => {
             if (typeof str !== 'string') return str;
@@ -193,7 +202,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         }
     };
 
-    // ── MOTOR HÍBRIDO (OPTIMIZADO) ───────────────────────────
     function inicializarKBCache() {
         const opcionesFuse = {
             includeScore: true,
@@ -216,19 +224,14 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
             if (resultados.length > 0) {
                 const mejorCoincidencia = resultados[0];
                 const confidence = Math.max(0, Math.round((1 - mejorCoincidencia.score) * 100));
-                
-                if (confidence >= 65) { 
-                    return { area: mejorCoincidencia.item.area, conf: confidence, origen: 'IA Historial' };
-                }
+                if (confidence >= 65) return { area: mejorCoincidencia.item.area, conf: confidence, origen: 'IA Historial' };
             }
         }
         return { area: 'PENDIENTE', conf: 0, origen: 'Nuevo' };
     }
     
-    // ── LECTOR UNIVERSAL (RESOLUCIÓN DE BUG DE FECHAS/TIEMPOS) ─────
     function parsearArchivoUniversal(resultBuffer) {
         const headerStr = new TextDecoder().decode(new Uint8Array(resultBuffer).subarray(0, 100)).toLowerCase();
-        
         let filasDatos = [];
         let headerIdx = -1;
         let hRow = [];
@@ -320,7 +323,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         reader.readAsArrayBuffer(arc.file);
     }
 
-    // ── PROCESAMIENTO Y SINCRONIZACIÓN ────────────────────────────
     function procesarTodo() {
         const listos = State.archivos.filter(a => a.estado === 'ok');
         if (!listos.length) return;
@@ -358,7 +360,8 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         }, 100);
     }
 
-    function procesarCargaMensual(input) {
+    // ── LÓGICA DE CARGA MENSUAL REPARADA (Línea Específica + Fecha) ──
+    function procesarCargaMensual(input, lineaAsignada) {
         const mes = document.getElementById('update-mes-selector').value;
         const file = input.files[0];
         if(!file) return;
@@ -371,22 +374,25 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         reader.onload = (e) => {
             try {
                 const rawRows = parsearArchivoUniversal(e.target.result);
-                
                 const consolidados = {};
+                
                 rawRows.forEach(row => {
                     const obsNorm = row.Observaciones.toLowerCase();
-                    if (!consolidados[obsNorm]) {
+                    // SE CORRIGIÓ EL BUG: Agrupar por Observación Y Fecha.
+                    const key = `${obsNorm}|${row.Fecha}`; 
+                    
+                    if (!consolidados[key]) {
                         const analisis = determinarAreaHibrida(row.Observaciones);
-                        consolidados[obsNorm] = {
+                        consolidados[key] = {
                             obs: row.Observaciones,
                             duracion: 0,
                             area: analisis.area,
                             codigo: row.Codigo,
-                            linea: "MIXTA", 
+                            linea: lineaAsignada, // SE ELIMINÓ "MIXTA". Ahora inyecta TUBING o CASING
                             fecha: row.Fecha 
                         };
                     }
-                    consolidados[obsNorm].duracion += Helpers.durAMin(row.Duracion);
+                    consolidados[key].duracion += Helpers.durAMin(row.Duracion);
                 });
 
                 const payload = Object.values(consolidados).map(r => ({
@@ -394,31 +400,33 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                     duracion: Math.round(r.duracion * 100) / 100,
                     area: r.area,
                     codigo: r.codigo,
-                    linea: r.linea,
+                    linea: r.linea, // Envia TUBING o CASING a Power Automate
                     fecha: r.fecha
                 }));
 
-                enviarSyncMasivo(payload, mes);
+                input.value = ''; // Resetea el input para futuras cargas
+                enviarSyncMasivo(payload, `${mes} - ${lineaAsignada}`);
             } catch(err) { 
                 alert('Error al leer el archivo: ' + err.message); 
                 btnSync.innerHTML = '🔄 Subir actualización a Microsoft Lists';
                 btnSync.disabled = false;
+                input.value = '';
             }
         };
         reader.readAsArrayBuffer(file);
     }
 
-    async function enviarSyncMasivo(payload, mesContexto) {
+    async function enviarSyncMasivo(payload, contexto) {
         const btnSync = document.getElementById('btn-sync');
         btnSync.innerHTML = '⏳ Subiendo a Microsoft Lists...';
         btnSync.disabled = true;
 
         try {
             await emailjs.send(CFG.emailJsService, CFG.emailJsTemplate, {
-                subject: mesContexto ? `INOPS_SYNC_GLOBAL | ${mesContexto}` : "INOPS_SYNC_GLOBAL",
+                subject: contexto ? `INOPS_SYNC_GLOBAL | ${contexto}` : "INOPS_SYNC_GLOBAL",
                 data: JSON.stringify(payload)
             });
-            alert('✅ Éxito: Se ha enviado la tabla. Power Automate procesará los datos.');
+            alert(`✅ Éxito: Se enviaron los datos. Power Automate comparará y actualizará la base de datos.`);
             btnSync.innerHTML = '✅ Tabla Sincronizada';
             setStep(4);
         } catch (err) {
@@ -532,7 +540,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         State.tsvData = hdrs.join('\t') + '\n' + State.filtrados.map(r => [r.Voz, r.Linea, r.Area, r.Fecha, r.Turno, r.Inicio, r.Fin, r.min, r.Observaciones].map(v => String(v||'').replace(/\t/g,' ')).join('\t')).join('\n');
     }
 
-    // ── GESTIÓN DE EVENTOS CENTRALIZADA ───────────────────────────
     function initEvents() {
         document.querySelectorAll('.drop').forEach(el => {
             el.addEventListener('click', () => document.getElementById(el.getAttribute('data-target')).click());
@@ -548,7 +555,12 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 
         document.getElementById('fi-tubing').addEventListener('change', function() { if(this.files.length) agregarFiles(this.files, 'TUBING'); });
         document.getElementById('fi-casing').addEventListener('change', function() { if(this.files.length) agregarFiles(this.files, 'CASING'); });
-        document.getElementById('fi-mensual').addEventListener('change', function() { if(this.files.length) procesarCargaMensual(this); });
+        
+        // Eventos para carga mensual segmentada
+        document.getElementById('btn-mensual-tubing').addEventListener('click', () => document.getElementById('fi-mensual-tubing').click());
+        document.getElementById('btn-mensual-casing').addEventListener('click', () => document.getElementById('fi-mensual-casing').click());
+        document.getElementById('fi-mensual-tubing').addEventListener('change', function() { if(this.files.length) procesarCargaMensual(this, 'TUBING'); });
+        document.getElementById('fi-mensual-casing').addEventListener('change', function() { if(this.files.length) procesarCargaMensual(this, 'CASING'); });
 
         document.getElementById('files-grid').addEventListener('click', (e) => {
             if(e.target.classList.contains('fdel')) {
@@ -604,7 +616,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         document.querySelectorAll('.evt-filter').forEach(f => f.addEventListener('change', aplicarFiltros));
     }
 
-    // ── UTILIDADES GLOBALES (UI) ──────────────────────────────────
     function setStep(n) { for (let i=1; i<=4; i++) document.getElementById('st'+i).className = 'step' + (i<n?' done':i===n?' active':''); }
     function limpiarTodo() { State.archivos = []; State.agrupados = []; State.filtrados = []; document.getElementById('files-grid').style.display = 'none'; document.getElementById('btn-procesar-row').style.display = 'none'; document.getElementById('card-result').classList.add('hidden'); setStep(1); document.getElementById('btn-sync').innerHTML = '🔄 Subir actualización a Microsoft Lists'; document.getElementById('btn-sync').disabled = false; }
     
