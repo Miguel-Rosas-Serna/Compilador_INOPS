@@ -2,9 +2,10 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Cargador INOPS Multi-Línea V8.1 - Enterprise Edition</title>
+<title>Cargador INOPS Multi-Línea V8.2 - Enterprise AI Edition</title>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
 
 <style>
 /* ── PALETA CORPORATIVA Y DISEÑO UI MANTENIDO INTACTO ── */
@@ -62,8 +63,9 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 </style>
 </head>
 <body>
+
 <div class="topbar">
-  <h1>⚙ Cargador INOPS — Hub de Control Dual (Enterprise Edition V8.1)</h1>
+  <h1>⚙ Cargador INOPS — Hub de Control Dual (Enterprise AI Edition V8.2)</h1>
   <span>Tenaris Tamsa | Análisis Multidimensional</span>
 </div>
 
@@ -152,20 +154,17 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
     const CFG = {
         emailJsKey: "ptDVMrIvTEjy814jJ",
         emailJsService: "service_2sg430e",
-        emailJsTemplate: "template_153hzsc", // <-- ID RESTAURADO A TU VERSION FUNCIONAL
-        mesesOden: ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic','Sin_Mes','Sin Mes','Desconocido']
+        emailJsTemplate: "template_153hzsc", 
+        mesesOrden: ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic','Sin_Mes','Sin Mes','Desconocido']
     };
 
     emailjs.init({ publicKey: CFG.emailJsKey });
 
     // ── ESTADO GLOBAL DE LA APP (Aislado) ─────────────────────────
     const State = {
-        archivos: [],
-        agrupados: [],
-        filtrados: [],
-        tsvData: '',
+        archivos: [], agrupados: [], filtrados: [], tsvData: '',
         knowledgeBase: JSON.parse(localStorage.getItem('inops_kb')) || [],
-        kbCache: []
+        fuseInstance: null
     };
 
     // ── HERRAMIENTAS DE SEGURIDAD Y PARSEO ────────────────────────
@@ -180,7 +179,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         extraerMes: (fechaStr) => {
             if (!fechaStr) return 'Sin Mes';
             const parts = fechaStr.split(/[-/]/);
-            if (parts.length >= 2) return CFG.mesesOden[parseInt(parts[1], 10)-1] || 'Sin Mes';
+            if (parts.length >= 2) return CFG.mesesOrden[parseInt(parts[1], 10)-1] || 'Sin Mes';
             return 'Desconocido';
         },
         durAMin: (d) => {
@@ -191,54 +190,43 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                 return 0;
             }
             return parseFloat(d) || 0;
-        },
-        getBigrams: (str) => {
-            const bigrams = new Set();
-            for(let i = 0; i < str.length - 1; i++) bigrams.add(str.substring(i, i+2));
-            return bigrams;
-        },
-        similitudDice: (bg1, bg2) => {
-            if (bg1.size === 0 || bg2.size === 0) return 0;
-            let intersection = 0; 
-            for (let bg of bg1) if (bg2.has(bg)) intersection++;
-            return (2.0 * intersection) / (bg1.size + bg2.size);
         }
     };
 
     // ── MOTOR HÍBRIDO (OPTIMIZADO) ───────────────────────────
     function inicializarKBCache() {
-        State.kbCache = State.knowledgeBase.map(kb => ({
-            ...kb,
-            bigrams: Helpers.getBigrams(kb.texto)
-        }));
+        const opcionesFuse = {
+            includeScore: true,
+            threshold: 0.35, 
+            keys: ['texto']
+        };
+        State.fuseInstance = new Fuse(State.knowledgeBase, opcionesFuse);
     }
 
     function determinarAreaHibrida(obs) {
         if (!obs) return { area: 'PENDIENTE', conf: 0, origen: '-' };
         const txt = obs.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         
-        const exactMatch = State.kbCache.find(kb => kb.texto === txt);
-        if (exactMatch) return { area: exactMatch.area, conf: 100, origen: 'Historial' };
-        
         if (/etiquetadora|etiqueta|tracking/.test(txt)) return { area: 'TRACKING', conf: 100, origen: 'Regla' };
         if (/robot dm|robot de dm|pp pin|pp box|celda robotica|celda/.test(txt)) return { area: 'ROBOTICA', conf: 100, origen: 'Regla' };
         if (/traslape|tubo a tubo|pantalla|mascarilla da[nñ]ada|camara|vision|asistencia traceability/.test(txt)) return { area: 'VISION', conf: 100, origen: 'Regla' };
         
-        if (State.kbCache.length > 0) {
-            let maxScore = 0; let predictedArea = 'PENDIENTE';
-            const inputBigrams = Helpers.getBigrams(txt);
-            for (let kb of State.kbCache) {
-                let score = Helpers.similitudDice(inputBigrams, kb.bigrams);
-                if (score > maxScore) { maxScore = score; predictedArea = kb.area; }
+        if (State.fuseInstance && State.knowledgeBase.length > 0) {
+            const resultados = State.fuseInstance.search(txt);
+            if (resultados.length > 0) {
+                const mejorCoincidencia = resultados[0];
+                const confidence = Math.max(0, Math.round((1 - mejorCoincidencia.score) * 100));
+                
+                if (confidence >= 65) { 
+                    return { area: mejorCoincidencia.item.area, conf: confidence, origen: 'IA Historial' };
+                }
             }
-            if (maxScore >= 0.90) return { area: predictedArea, conf: Math.round(maxScore * 100), origen: 'IA Similitud' };
         }
         return { area: 'PENDIENTE', conf: 0, origen: 'Nuevo' };
     }
-
+    
     // ── LECTOR UNIVERSAL (RESOLUCIÓN DE BUG DE FECHAS/TIEMPOS) ─────
     function parsearArchivoUniversal(resultBuffer) {
-        // Detectar tipo de archivo mirando los primeros 100 bytes
         const headerStr = new TextDecoder().decode(new Uint8Array(resultBuffer).subarray(0, 100)).toLowerCase();
         
         let filasDatos = [];
@@ -246,7 +234,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         let hRow = [];
 
         if (headerStr.includes('<html') || headerStr.includes('<xml') || headerStr.includes('<table')) {
-            // FALLBACK V7: Es un HTML exportado de Excel. Preserva strings exactos (06:12:12)
             const textStr = new TextDecoder('iso-8859-1').decode(resultBuffer);
             const doc = new DOMParser().parseFromString(textStr, 'text/html');
             const tbl = doc.querySelector('table');
@@ -269,10 +256,8 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
             filasDatos = filas.slice(headerIdx + 1);
 
         } else {
-            // MODO V8: Es un archivo binario real de Excel (.xlsx)
             const workbook = XLSX.read(resultBuffer, {type: 'array'});
             const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-            // raw: false asegura que tiempos y fechas salgan como string formateado
             const jsonData = XLSX.utils.sheet_to_json(firstSheet, {header: 1, raw: false, dateNF: 'yyyy-mm-dd', defval: ""});
             
             for (let i=0; i<Math.min(10, jsonData.length); i++) {
@@ -285,7 +270,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
             filasDatos = jsonData.slice(headerIdx + 1);
         }
 
-        // Mapeo Dinámico + Seguro (Respaldo exacto de la V7)
         const getIdx = (keywords, fallback) => {
             let idx = hRow.findIndex(h => keywords.some(k => h.includes(k)));
             return idx !== -1 ? idx : fallback;
@@ -374,7 +358,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         }, 100);
     }
 
-    // Lógica Unificada para la carga mensual
     function procesarCargaMensual(input) {
         const mes = document.getElementById('update-mes-selector').value;
         const file = input.files[0];
@@ -481,7 +464,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 
     function poblarFiltros() {
         const buildOpts = (arr) => `<option value="ALL">Mostrar Todos</option>` + arr.map(x => `<option value="${Helpers.escapeHTML(x)}">${Helpers.escapeHTML(x)}</option>`).join('');
-        const meses = [...new Set(State.agrupados.map(a => a.Mes).filter(Boolean))].sort((a, b) => (CFG.mesesOden.indexOf(a) === -1 ? 999 : CFG.mesesOden.indexOf(a)) - (CFG.mesesOden.indexOf(b) === -1 ? 999 : CFG.mesesOden.indexOf(b)));
+        const meses = [...new Set(State.agrupados.map(a => a.Mes).filter(Boolean))].sort((a, b) => (CFG.mesesOrden.indexOf(a) === -1 ? 999 : CFG.mesesOrden.indexOf(a)) - (CFG.mesesOrden.indexOf(b) === -1 ? 999 : CFG.mesesOrden.indexOf(b)));
         
         document.getElementById('f-linea').innerHTML = buildOpts([...new Set(State.agrupados.map(a => a.Linea).filter(Boolean))].sort()); 
         document.getElementById('f-mes').innerHTML = buildOpts(meses);
@@ -638,7 +621,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         });
 
         const wb = XLSX.utils.book_new();
-        Object.keys(datosMes).sort((a,b) => (CFG.mesesOden.indexOf(a) === -1 ? 999 : CFG.mesesOden.indexOf(a)) - (CFG.mesesOden.indexOf(b) === -1 ? 999 : CFG.mesesOden.indexOf(b)))
+        Object.keys(datosMes).sort((a,b) => (CFG.mesesOrden.indexOf(a) === -1 ? 999 : CFG.mesesOrden.indexOf(a)) - (CFG.mesesOrden.indexOf(b) === -1 ? 999 : CFG.mesesOrden.indexOf(b)))
         .forEach(m => XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(datosMes[m]), m));
         
         XLSX.writeFile(wb, filtro === 'ALL' ? 'Reporte_Global_TenarisTamsa.xlsx' : `Reporte_TenarisTamsa_${filtro}.xlsx`);
