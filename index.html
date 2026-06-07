@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Cargador INOPS Multi-Línea V8.3 - Enterprise AI Edition</title>
+<title>Cargador INOPS Multi-Línea V8.4 - Frontend Inteligente</title>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
@@ -65,7 +65,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 <body>
 
 <div class="topbar">
-  <h1>⚙ Cargador INOPS — Hub de Control Dual (Enterprise AI Edition V8.3)</h1>
+  <h1>⚙ Cargador INOPS — Hub de Control Dual (Enterprise AI Edition V8.4)</h1>
   <span>Tenaris Tamsa | Análisis Multidimensional</span>
 </div>
 
@@ -98,33 +98,18 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
   </div>
 
   <div class="card">
-    <div class="card-title">📅 Actualización de Tabla Mensual (Segmentada)</div>
-    <div style="display:flex; gap:24px; align-items:center; flex-wrap: wrap;">
-      
-      <div class="filter-group" style="flex: 0 1 auto; min-width: 150px;">
-        <label>Mes a Sincronizar</label>
-        <select id="update-mes-selector" style="width: 100%;">
-          <option value="Ene">Enero</option><option value="Feb">Febrero</option><option value="Mar">Marzo</option>
-          <option value="Abr">Abril</option><option value="May">Mayo</option><option value="Jun">Junio</option>
-          <option value="Jul">Julio</option><option value="Ago">Agosto</option><option value="Sep">Septiembre</option>
-          <option value="Oct">Octubre</option><option value="Nov">Noviembre</option><option value="Dic">Diciembre</option>
-        </select>
+    <div class="card-title">📅 Actualización de Tabla (Auto-Detectada)</div>
+    <div style="display:flex; gap:16px; border-top: 1px solid var(--tamsa-border); padding-top: 16px;">
+      <div style="flex: 1;">
+        <label style="font-size:10px; font-weight:700; color:var(--tamsa-text-muted); text-transform:uppercase; letter-spacing: 0.5px; display:block; margin-bottom: 8px;">Cargar histórico exclusivo de TUBING</label>
+        <button class="btn btn-excel-tubing" id="btn-mensual-tubing" style="width: 100%;">🔵 Auto-Actualizar TUBING</button>
+        <input type="file" id="fi-mensual-tubing" accept=".xls,.xlsx,.html" style="display:none;">
       </div>
-
-      <div style="flex: 1; display: flex; gap: 16px; border-left: 1px solid var(--tamsa-border); padding-left: 24px;">
-        <div style="flex: 1;">
-          <label style="font-size:10px; font-weight:700; color:var(--tamsa-text-muted); text-transform:uppercase; letter-spacing: 0.5px; display:block; margin-bottom: 8px;">Cargar archivo exclusivo de TUBING</label>
-          <button class="btn btn-excel-tubing" id="btn-mensual-tubing" style="width: 100%;">🔵 Actualizar TUBING</button>
-          <input type="file" id="fi-mensual-tubing" accept=".xls,.xlsx,.html" style="display:none;">
-        </div>
-        
-        <div style="flex: 1;">
-          <label style="font-size:10px; font-weight:700; color:var(--tamsa-text-muted); text-transform:uppercase; letter-spacing: 0.5px; display:block; margin-bottom: 8px;">Cargar archivo exclusivo de CASING</label>
-          <button class="btn btn-excel-casing" id="btn-mensual-casing" style="width: 100%;">🔴 Actualizar CASING</button>
-          <input type="file" id="fi-mensual-casing" accept=".xls,.xlsx,.html" style="display:none;">
-        </div>
+      <div style="flex: 1;">
+        <label style="font-size:10px; font-weight:700; color:var(--tamsa-text-muted); text-transform:uppercase; letter-spacing: 0.5px; display:block; margin-bottom: 8px;">Cargar histórico exclusivo de CASING</label>
+        <button class="btn btn-excel-casing" id="btn-mensual-casing" style="width: 100%;">🔴 Auto-Actualizar CASING</button>
+        <input type="file" id="fi-mensual-casing" accept=".xls,.xlsx,.html" style="display:none;">
       </div>
-
     </div>
   </div>
 
@@ -360,25 +345,23 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         }, 100);
     }
 
-    // ── LÓGICA DE CARGA MENSUAL REPARADA (Línea Específica + Fecha) ──
-    function procesarCargaMensual(input, lineaAsignada) {
-        const mes = document.getElementById('update-mes-selector').value;
+    // ── LÓGICA DE AUTO-DETECCIÓN Y CHUNKING (V8.4) ──
+    async function procesarCargaMensual(input, lineaAsignada) {
         const file = input.files[0];
         if(!file) return;
 
         const btnSync = document.getElementById('btn-sync');
-        btnSync.innerHTML = '⏳ Procesando archivo...';
+        btnSync.innerHTML = '⏳ Analizando y agrupando datos...';
         btnSync.disabled = true;
 
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             try {
                 const rawRows = parsearArchivoUniversal(e.target.result);
                 const consolidados = {};
                 
                 rawRows.forEach(row => {
                     const obsNorm = row.Observaciones.toLowerCase();
-                    // SE CORRIGIÓ EL BUG: Agrupar por Observación Y Fecha.
                     const key = `${obsNorm}|${row.Fecha}`; 
                     
                     if (!consolidados[key]) {
@@ -388,26 +371,50 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                             duracion: 0,
                             area: analisis.area,
                             codigo: row.Codigo,
-                            linea: lineaAsignada, // SE ELIMINÓ "MIXTA". Ahora inyecta TUBING o CASING
+                            linea: lineaAsignada, 
                             fecha: row.Fecha 
                         };
                     }
                     consolidados[key].duracion += Helpers.durAMin(row.Duracion);
                 });
 
-                const payload = Object.values(consolidados).map(r => ({
+                const payloadCompleto = Object.values(consolidados).map(r => ({
                     obs: Helpers.cleanOData(r.obs),
                     duracion: Math.round(r.duracion * 100) / 100,
                     area: r.area,
                     codigo: r.codigo,
-                    linea: r.linea, // Envia TUBING o CASING a Power Automate
+                    linea: r.linea,
                     fecha: r.fecha
                 }));
 
-                input.value = ''; // Resetea el input para futuras cargas
-                enviarSyncMasivo(payload, `${mes} - ${lineaAsignada}`);
+                input.value = ''; 
+
+                if(payloadCompleto.length === 0) {
+                    alert("El archivo no contiene datos válidos.");
+                    btnSync.innerHTML = '🔄 Subir actualización a Microsoft Lists';
+                    btnSync.disabled = false;
+                    return;
+                }
+
+                // CHUNKING: Cortar en pedazos de 50 registros
+                const CHUNK_SIZE = 50;
+                const totalChunks = Math.ceil(payloadCompleto.length / CHUNK_SIZE);
+
+                for (let i = 0; i < totalChunks; i++) {
+                    const chunk = payloadCompleto.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+                    const contexto = `Lote ${i + 1}/${totalChunks} | ${lineaAsignada}`;
+                    
+                    btnSync.innerHTML = `⏳ Enviando ${contexto}...`;
+                    
+                    await enviarSyncMasivo(chunk, contexto, false);
+                }
+
+                alert(`✅ Éxito: Se enviaron ${payloadCompleto.length} registros en ${totalChunks} lote(s). Power Automate procesará la información en segundo plano.`);
+                btnSync.innerHTML = '✅ Actualización Completada';
+                setStep(4);
+
             } catch(err) { 
-                alert('Error al leer el archivo: ' + err.message); 
+                alert('Error al procesar el archivo: ' + err.message); 
                 btnSync.innerHTML = '🔄 Subir actualización a Microsoft Lists';
                 btnSync.disabled = false;
                 input.value = '';
@@ -416,23 +423,31 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         reader.readAsArrayBuffer(file);
     }
 
-    async function enviarSyncMasivo(payload, contexto) {
+    async function enviarSyncMasivo(payload, contexto, showFinalAlert = true) {
         const btnSync = document.getElementById('btn-sync');
-        btnSync.innerHTML = '⏳ Subiendo a Microsoft Lists...';
-        btnSync.disabled = true;
+        if(showFinalAlert) {
+            btnSync.innerHTML = '⏳ Subiendo a Microsoft Lists...';
+            btnSync.disabled = true;
+        }
 
         try {
             await emailjs.send(CFG.emailJsService, CFG.emailJsTemplate, {
                 subject: contexto ? `INOPS_SYNC_GLOBAL | ${contexto}` : "INOPS_SYNC_GLOBAL",
                 data: JSON.stringify(payload)
             });
-            alert(`✅ Éxito: Se enviaron los datos. Power Automate comparará y actualizará la base de datos.`);
-            btnSync.innerHTML = '✅ Tabla Sincronizada';
-            setStep(4);
+            
+            if(showFinalAlert) {
+                alert(`✅ Éxito: Se enviaron los datos. Power Automate comparará y actualizará la base de datos.`);
+                btnSync.innerHTML = '✅ Tabla Sincronizada';
+                setStep(4);
+            }
         } catch (err) {
             console.error('Error:', err);
-            btnSync.innerHTML = '❌ Error - Reintentar';
-            btnSync.disabled = false;
+            if(showFinalAlert) {
+                btnSync.innerHTML = '❌ Error - Reintentar';
+                btnSync.disabled = false;
+            }
+            throw err; 
         }
     }
 
@@ -445,7 +460,14 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
             linea: r.Linea,
             fecha: r.Fecha 
         }));
-        enviarSyncMasivo(payload, null);
+        
+        const CHUNK_SIZE = 50;
+        if(payload.length > CHUNK_SIZE) {
+            alert(`Para sincronizar la vista actual de ${payload.length} registros, por favor usa los botones de "Auto-Actualizar" en la sección superior para garantizar la integridad de los lotes.`);
+            return;
+        }
+        
+        enviarSyncMasivo(payload, null, true);
     }
 
     // ── RENDERIZADO DOM Y DELEGACIÓN DE EVENTOS ───────────────────
@@ -556,7 +578,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         document.getElementById('fi-tubing').addEventListener('change', function() { if(this.files.length) agregarFiles(this.files, 'TUBING'); });
         document.getElementById('fi-casing').addEventListener('change', function() { if(this.files.length) agregarFiles(this.files, 'CASING'); });
         
-        // Eventos para carga mensual segmentada
+        // Eventos para carga mensual auto-detectada
         document.getElementById('btn-mensual-tubing').addEventListener('click', () => document.getElementById('fi-mensual-tubing').click());
         document.getElementById('btn-mensual-casing').addEventListener('click', () => document.getElementById('fi-mensual-casing').click());
         document.getElementById('fi-mensual-tubing').addEventListener('change', function() { if(this.files.length) procesarCargaMensual(this, 'TUBING'); });
