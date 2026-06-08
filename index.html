@@ -395,18 +395,15 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                     return;
                 }
 
-                // AUTO-DETECCIÓN INTELIGENTE DEL MES BASADO EN LOS DATOS DEL EXCEL
-                const mesDetectado = datosUnificados[0].Mes;
-
+                    // SANITIZACIÓN EXTREMA Y TIPADO FUERTE
                 const payloadCompleto = datosUnificados.map(r => ({
-                    obs: r.Observaciones,
-                    duracion: r.min,
-                    area: r.Area,
-                    codigo: r.Voz,
-                    linea: r.Linea,
-                    fecha: r.Fecha
+                    obs: String(r.Observaciones).trim(),
+                    duracion: Number(r.min) || 0, // 🔥 Fuerza matemáticamente a ser Número (16.98)
+                    area: String(r.Area).trim(),
+                    codigo: String(r.Voz).trim(),
+                    linea: String(r.Linea).trim(), // Evita truncamientos invisibles
+                    fecha: String(r.Fecha).trim()
                 }));
-
                 input.value = ''; 
 
                 const CHUNK_SIZE = 50;
