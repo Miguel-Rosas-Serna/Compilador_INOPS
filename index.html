@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Cargador INOPS Multi-Línea V8.6 - Consolidación Estricta</title>
+<title>Cargador INOPS Multi-Línea V8.7 - Wipe & Load</title>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
@@ -65,7 +65,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 <body>
 
 <div class="topbar">
-  <h1>⚙ Cargador INOPS — Hub de Control Dual (Enterprise V8.6)</h1>
+  <h1>⚙ Cargador INOPS — Hub de Control Dual (Enterprise V8.7)</h1>
   <span>Tenaris Tamsa | Análisis Multidimensional</span>
 </div>
 
@@ -373,7 +373,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 // ── LÓGICA DE AUTO-DETECCIÓN Y WIPE & LOAD (V8.7) ──
     async function procesarCargaMensual(input, lineaAsignada) {
         const file = input.files[0];
-        const mesSeleccionado = document.getElementById('update-mes-selector').value; // Capturamos el mes del UI
         if(!file) return;
 
         const btnSync = document.getElementById('btn-sync');
@@ -388,6 +387,17 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                 // Consolida los datos eliminando dobles espacios
                 const datosUnificados = consolidarDatosUnificados(rawRows, lineaAsignada);
 
+                if(datosUnificados.length === 0) {
+                    alert("El archivo no contiene datos válidos.");
+                    btnSync.innerHTML = '🔄 Subir actualización a Microsoft Lists';
+                    btnSync.disabled = false;
+                    input.value = '';
+                    return;
+                }
+
+                // AUTO-DETECCIÓN INTELIGENTE DEL MES BASADO EN LOS DATOS DEL EXCEL
+                const mesDetectado = datosUnificados[0].Mes;
+
                 const payloadCompleto = datosUnificados.map(r => ({
                     obs: r.Observaciones,
                     duracion: r.min,
@@ -399,25 +409,18 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 
                 input.value = ''; 
 
-                if(payloadCompleto.length === 0) {
-                    alert("El archivo no contiene datos válidos.");
-                    btnSync.innerHTML = '🔄 Subir actualización a Microsoft Lists';
-                    btnSync.disabled = false;
-                    return;
-                }
-
                 const CHUNK_SIZE = 50;
                 const totalChunks = Math.ceil(payloadCompleto.length / CHUNK_SIZE);
 
                 for (let i = 0; i < totalChunks; i++) {
                     const chunk = payloadCompleto.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
-                    const contexto = `Lote ${i + 1}/${totalChunks} | ${lineaAsignada}`;
+                    const contexto = `Lote ${i + 1}/${totalChunks} | ${lineaAsignada} (${mesDetectado})`;
                     
                     // NUEVA ESTRUCTURA DE PAYLOAD PARA POWER AUTOMATE
                     const payloadLote = {
                         meta: {
                             linea: lineaAsignada,
-                            mes: mesSeleccionado,
+                            mes: mesDetectado,
                             esPrimerLote: (i === 0) // TRUE solo en el primer lote, FALSE en el resto
                         },
                         datos: chunk
@@ -427,7 +430,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                     await enviarSyncMasivo(payloadLote, contexto, false);
                 }
 
-                alert(`✅ Éxito: Se enviaron ${payloadCompleto.length} registros. La base de datos será reemplazada con esta nueva versión limpia.`);
+                alert(`✅ Éxito: Se enviaron ${payloadCompleto.length} registros. Se reemplazará la información de ${mesDetectado} para ${lineaAsignada}.`);
                 btnSync.innerHTML = '✅ Actualización Completada';
                 setStep(4);
 
