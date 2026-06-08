@@ -370,8 +370,10 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         }, 100);
     }
 
+// ── LÓGICA DE AUTO-DETECCIÓN Y WIPE & LOAD (V8.7) ──
     async function procesarCargaMensual(input, lineaAsignada) {
         const file = input.files[0];
+        const mesSeleccionado = document.getElementById('update-mes-selector').value; // Capturamos el mes del UI
         if(!file) return;
 
         const btnSync = document.getElementById('btn-sync');
@@ -383,7 +385,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
             try {
                 const rawRows = parsearArchivoUniversal(e.target.result);
                 
-                // USAMOS EL MISMO MOTOR PARA EL ENVÍO A POWER AUTOMATE
+                // Consolida los datos eliminando dobles espacios
                 const datosUnificados = consolidarDatosUnificados(rawRows, lineaAsignada);
 
                 const payloadCompleto = datosUnificados.map(r => ({
@@ -411,11 +413,21 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                     const chunk = payloadCompleto.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
                     const contexto = `Lote ${i + 1}/${totalChunks} | ${lineaAsignada}`;
                     
+                    // NUEVA ESTRUCTURA DE PAYLOAD PARA POWER AUTOMATE
+                    const payloadLote = {
+                        meta: {
+                            linea: lineaAsignada,
+                            mes: mesSeleccionado,
+                            esPrimerLote: (i === 0) // TRUE solo en el primer lote, FALSE en el resto
+                        },
+                        datos: chunk
+                    };
+
                     btnSync.innerHTML = `⏳ Enviando ${contexto}...`;
-                    await enviarSyncMasivo(chunk, contexto, false);
+                    await enviarSyncMasivo(payloadLote, contexto, false);
                 }
 
-                alert(`✅ Éxito: Se enviaron ${payloadCompleto.length} registros SIN DUPLICADOS. Power Automate actualizará la base de datos.`);
+                alert(`✅ Éxito: Se enviaron ${payloadCompleto.length} registros. La base de datos será reemplazada con esta nueva versión limpia.`);
                 btnSync.innerHTML = '✅ Actualización Completada';
                 setStep(4);
 
