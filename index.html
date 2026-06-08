@@ -2,13 +2,12 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Cargador INOPS Multi-Línea V8.8 - Sincronización Total</title>
+<title>Cargador INOPS Multi-Línea V8.9 - Fix Power Automate</title>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
 
 <style>
-/* ── PALETA CORPORATIVA Y DISEÑO UI ── */
 :root { --tamsa-blue: #002D62; --tamsa-blue-hover: #001A3B; --tamsa-red: #D22730; --tamsa-red-hover: #A11D25; --tamsa-bg: #F0F2F5; --tamsa-surface: #FFFFFF; --tamsa-border: #D1D5DB; --tamsa-text: #1F2937; --tamsa-text-muted: #6B7280; --color-tubing: #004085; --color-casing: #D22730; --color-excel: #107C41; }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family: 'Segoe UI', Arial, sans-serif; background:var(--tamsa-bg); color:var(--tamsa-text); font-size:14px; line-height: 1.5;}
@@ -65,7 +64,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 <body>
 
 <div class="topbar">
-  <h1>⚙ Cargador INOPS — Hub de Control Dual (Enterprise V8.8)</h1>
+  <h1>⚙ Cargador INOPS — Hub de Control Dual (Enterprise V8.9)</h1>
   <span>Tenaris Tamsa | Análisis Multidimensional</span>
 </div>
 
@@ -157,9 +156,17 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 
     const State = {
         archivos: [], agrupados: [], filtrados: [], tsvData: '',
-        knowledgeBase: JSON.parse(localStorage.getItem('inops_kb')) || [],
+        knowledgeBase: [], // sin localStorage para evitar error de Tracking Prevention
         fuseInstance: null
     };
+
+    // Intenta cargar KB desde localStorage de forma segura (Edge puede bloquearlo)
+    try {
+        const kb = localStorage.getItem('inops_kb');
+        if (kb) State.knowledgeBase = JSON.parse(kb);
+    } catch(e) {
+        console.warn('localStorage no disponible (Tracking Prevention). La KB de sesión funcionará en memoria.');
+    }
 
     const Helpers = {
         escapeHTML: (str) => {
@@ -168,20 +175,26 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                 '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
             }[tag]));
         },
+
+        // ─── FIX PRINCIPAL: limpieza agresiva para que json() de Power Automate no falle ───
         cleanOData: (str) => {
             return String(str || '')
-                .replace(/[\r\n]+/g, ' ')      
-                .replace(/['"“”‘’]/g, '`')     
-                .replace(/\s+/g, ' ')          
-                .substring(0, 250)             
-                .trim();                       
+                .replace(/[\r\n\t]+/g, ' ')         // saltos de línea y tabs → espacio
+                .replace(/["""''«»]/g, '')           // todas las comillas → eliminadas
+                .replace(/[\\]/g, '')                // barras invertidas → eliminadas
+                .replace(/[^\x20-\x7E\xC0-\xFF]/g, ' ') // solo ASCII imprimible + latin1 básico
+                .replace(/\s+/g, ' ')
+                .substring(0, 200)                   // reducido a 200 para seguridad
+                .trim();
         },
+
         extraerMes: (fechaStr) => {
             if (!fechaStr) return 'Sin Mes';
             const parts = fechaStr.split(/[-/]/);
             if (parts.length >= 2) return CFG.mesesOrden[parseInt(parts[1], 10)-1] || 'Sin Mes';
             return 'Desconocido';
         },
+
         durAMin: (d) => {
             d = String(d||'').trim();
             if (d.includes(':')) {
@@ -190,8 +203,32 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                 return 0;
             }
             return parseFloat(d) || 0;
+        },
+
+        // ─── NUEVO: serializa payload de forma segura para Power Automate ───
+        serializarPayload: (datos) => {
+            // Construye el array manualmente para garantizar que cada campo sea seguro
+            const items = datos.map(r => {
+                return {
+                    obs:      String(r.obs      || '').replace(/["""''\\]/g, '').replace(/[\r\n\t]/g, ' ').substring(0, 200).trim(),
+                    duracion: Number(r.duracion) || 0,
+                    area:     String(r.area     || '').replace(/[^A-Z0-9]/gi, '').substring(0, 20).trim(),
+                    codigo:   String(r.codigo   || '').replace(/[^A-Z0-9_\-]/gi, '').substring(0, 20).trim(),
+                    linea:    String(r.linea    || '').replace(/[^A-Z]/gi, '').substring(0, 10).trim(),
+                    fecha:    String(r.fecha    || '').replace(/[^0-9\-/]/g, '').substring(0, 10).trim()
+                };
+            });
+            return JSON.stringify(items);
         }
     };
+
+    function guardarKB() {
+        try {
+            localStorage.setItem('inops_kb', JSON.stringify(State.knowledgeBase));
+        } catch(e) {
+            // Silencioso — Tracking Prevention lo bloquea en Edge, la KB vive en memoria de sesión
+        }
+    }
 
     function inicializarKBCache() {
         const opcionesFuse = { includeScore: true, threshold: 0.35, keys: ['texto'] };
@@ -389,12 +426,12 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                 const mesDetectado = datosUnificados[0].Mes;
 
                 const payloadCompleto = datosUnificados.map(r => ({
-                    obs: String(r.Observaciones).trim(),
-                    duracion: Number(r.min) || 0,
-                    area: String(r.Area).trim(),
-                    codigo: String(r.Voz).trim(),
-                    linea: String(r.Linea).trim(),
-                    fecha: String(r.Fecha).trim()
+                    obs:      r.Observaciones,
+                    duracion: r.min,
+                    area:     r.Area,
+                    codigo:   r.Voz,
+                    linea:    r.Linea,
+                    fecha:    r.Fecha
                 }));
 
                 input.value = ''; 
@@ -406,17 +443,17 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                     const chunk = payloadCompleto.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
                     const contexto = `Lote ${i + 1}/${totalChunks} | ${lineaAsignada} (${mesDetectado})`;
                     
-                    const payloadLote = {
-                        meta: {
-                            linea: lineaAsignada,
-                            mes: mesDetectado,
-                            esPrimerLote: (i === 0)
-                        },
-                        datos: chunk
+                    // ─── FIX: meta como campos planos + datos como string serializado seguro ───
+                    const payloadEmailJS = {
+                        subject:      `INOPS_SYNC_GLOBAL | ${contexto}`,
+                        meta_linea:   lineaAsignada,
+                        meta_mes:     mesDetectado,
+                        es_primer_lote: (i === 0) ? "true" : "false",   // STRING no booleano
+                        data:         Helpers.serializarPayload(chunk)   // JSON limpio
                     };
 
                     btnSync.innerHTML = `⏳ Enviando ${contexto}...`;
-                    await enviarSyncMasivo(payloadLote, contexto, false);
+                    await enviarEmailJS(payloadEmailJS);
                 }
 
                 alert(`✅ Éxito: Se enviaron ${payloadCompleto.length} registros. Se reemplazará la información de ${mesDetectado} para ${lineaAsignada}.`);
@@ -433,36 +470,24 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         reader.readAsArrayBuffer(file);
     }
 
-    async function enviarSyncMasivo(payload, contexto, showFinalAlert = true) {
-        const btnSync = document.getElementById('btn-sync');
-        if(showFinalAlert) { btnSync.innerHTML = '⏳ Subiendo a Microsoft Lists...'; btnSync.disabled = true; }
-
+    // ─── Función de envío unificada (reemplaza enviarSyncMasivo) ───
+    async function enviarEmailJS(payloadEmailJS) {
         try {
-            await emailjs.send(CFG.emailJsService, CFG.emailJsTemplate, {
-                subject: contexto ? `INOPS_SYNC_GLOBAL | ${contexto}` : "INOPS_SYNC_GLOBAL",
-                data: JSON.stringify(payload)
-            });
-            
-            if(showFinalAlert) {
-                alert(`✅ Éxito: Se enviaron los datos.`);
-                btnSync.innerHTML = '✅ Tabla Sincronizada';
-                setStep(4);
-            }
+            await emailjs.send(CFG.emailJsService, CFG.emailJsTemplate, payloadEmailJS);
         } catch (err) {
-            console.error('Error:', err);
-            if(showFinalAlert) { btnSync.innerHTML = '❌ Error - Reintentar'; btnSync.disabled = false; }
-            throw err; 
+            console.error('EmailJS error:', err);
+            throw new Error('Error al enviar a EmailJS: ' + (err.text || err.message || JSON.stringify(err)));
         }
     }
 
     function prepararSincronizacionVisible() {
         const payload = State.agrupados.map(r => ({
-            obs: String(r.Observaciones).trim(),
-            duracion: Number(r.min) || 0,
-            area: String(r.Area).trim(),
-            codigo: String(r.Voz).trim(),
-            linea: String(r.Linea).trim(),
-            fecha: String(r.Fecha).trim()
+            obs:      r.Observaciones,
+            duracion: r.min,
+            area:     r.Area,
+            codigo:   r.Voz,
+            linea:    r.Linea,
+            fecha:    r.Fecha
         }));
         
         if(payload.length > 50) {
@@ -470,17 +495,30 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
             return;
         }
 
-        // NUEVA ESTRUCTURA GLOBAL (NO BORRA DATOS)
-        const payloadGlobal = {
-            meta: {
-                linea: "GLOBAL",
-                mes: "NA",
-                esPrimerLote: false
-            },
-            datos: payload
+        const btnSync = document.getElementById('btn-sync');
+        btnSync.innerHTML = '⏳ Subiendo a Microsoft Lists...';
+        btnSync.disabled = true;
+
+        // ─── FIX: estructura plana compatible con Power Automate ───
+        const payloadEmailJS = {
+            subject:        "INOPS_SYNC_GLOBAL | Sincronización Global Visible",
+            meta_linea:     "GLOBAL",
+            meta_mes:       "NA",
+            es_primer_lote: "false",
+            data:           Helpers.serializarPayload(payload)
         };
 
-        enviarSyncMasivo(payloadGlobal, "Sincronización Global Visible", true);
+        enviarEmailJS(payloadEmailJS)
+            .then(() => {
+                alert('✅ Éxito: Se enviaron los datos.');
+                btnSync.innerHTML = '✅ Tabla Sincronizada';
+                setStep(4);
+            })
+            .catch(err => {
+                alert('Error al sincronizar: ' + err.message);
+                btnSync.innerHTML = '❌ Error - Reintentar';
+                btnSync.disabled = false;
+            });
     }
 
     function renderChips() {
@@ -637,7 +675,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                 if (existente) existente.area = nuevaArea;
                 else State.knowledgeBase.push({ texto: txtNorm, area: nuevaArea });
                 
-                localStorage.setItem('inops_kb', JSON.stringify(State.knowledgeBase));
+                guardarKB();
                 inicializarKBCache(); 
                 
                 poblarFiltros();
