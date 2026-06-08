@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Cargador INOPS Multi-Línea V8.7 - Wipe & Load</title>
+<title>Cargador INOPS Multi-Línea V8.8 - Sincronización Total</title>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
@@ -65,7 +65,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 <body>
 
 <div class="topbar">
-  <h1>⚙ Cargador INOPS — Hub de Control Dual (Enterprise V8.7)</h1>
+  <h1>⚙ Cargador INOPS — Hub de Control Dual (Enterprise V8.8)</h1>
   <span>Tenaris Tamsa | Análisis Multidimensional</span>
 </div>
 
@@ -282,17 +282,14 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         }).filter(d => d.Observaciones !== '' && d.Observaciones.toLowerCase() !== 'observaciones');
     }
 
-    // ── MOTOR ÚNICO DE CONSOLIDACIÓN (Evita Discrepancias) ──
     function consolidarDatosUnificados(rawRows, lineaForzada) {
         const consolidados = {};
-        
         rawRows.forEach(row => {
             const obsClean = Helpers.cleanOData(row.Observaciones);
             const obsNorm = obsClean.toLowerCase();
             const fecha = (row.Fecha || '').trim();
             const linea = lineaForzada ? lineaForzada.trim().toUpperCase() : (row.Linea || '').trim().toUpperCase();
             
-            // LA LLAVE MAESTRA: Fecha + Línea + Observación (Ignorando Tipo)
             const key = `${fecha}|${linea}|${obsNorm}`; 
             
             if (!consolidados[key]) {
@@ -314,7 +311,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                 };
             }
             
-            // Acumulación de tiempos de la misma falla
             consolidados[key].min += Helpers.durAMin(row.Duracion);
             if (row.Fin && row.Fin.trim() !== '') consolidados[key].Fin = row.Fin.trim();
         });
@@ -358,9 +354,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         listos.forEach(arc => todosLosRows.push(...arc.rows));
 
         setTimeout(() => {
-            // USAMOS EL MISMO MOTOR PARA LA VISTA UI
             State.agrupados = consolidarDatosUnificados(todosLosRows, null);
-            
             poblarFiltros();
             aplicarFiltros(); 
             setStep(3);
@@ -370,7 +364,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         }, 100);
     }
 
-// ── LÓGICA DE AUTO-DETECCIÓN Y WIPE & LOAD (V8.7) ──
     async function procesarCargaMensual(input, lineaAsignada) {
         const file = input.files[0];
         if(!file) return;
@@ -383,8 +376,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         reader.onload = async (e) => {
             try {
                 const rawRows = parsearArchivoUniversal(e.target.result);
-                
-                // Consolida los datos eliminando dobles espacios
                 const datosUnificados = consolidarDatosUnificados(rawRows, lineaAsignada);
 
                 if(datosUnificados.length === 0) {
@@ -395,15 +386,17 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                     return;
                 }
 
-                    // SANITIZACIÓN EXTREMA Y TIPADO FUERTE
+                const mesDetectado = datosUnificados[0].Mes;
+
                 const payloadCompleto = datosUnificados.map(r => ({
                     obs: String(r.Observaciones).trim(),
-                    duracion: Number(r.min) || 0, // 🔥 Fuerza matemáticamente a ser Número (16.98)
+                    duracion: Number(r.min) || 0,
                     area: String(r.Area).trim(),
                     codigo: String(r.Voz).trim(),
-                    linea: String(r.Linea).trim(), // Evita truncamientos invisibles
+                    linea: String(r.Linea).trim(),
                     fecha: String(r.Fecha).trim()
                 }));
+
                 input.value = ''; 
 
                 const CHUNK_SIZE = 50;
@@ -413,12 +406,11 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                     const chunk = payloadCompleto.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
                     const contexto = `Lote ${i + 1}/${totalChunks} | ${lineaAsignada} (${mesDetectado})`;
                     
-                    // NUEVA ESTRUCTURA DE PAYLOAD PARA POWER AUTOMATE
                     const payloadLote = {
                         meta: {
                             linea: lineaAsignada,
                             mes: mesDetectado,
-                            esPrimerLote: (i === 0) // TRUE solo en el primer lote, FALSE en el resto
+                            esPrimerLote: (i === 0)
                         },
                         datos: chunk
                     };
@@ -465,15 +457,30 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 
     function prepararSincronizacionVisible() {
         const payload = State.agrupados.map(r => ({
-            obs: r.Observaciones, duracion: r.min, area: r.Area,
-            codigo: r.Voz, linea: r.Linea, fecha: r.Fecha 
+            obs: String(r.Observaciones).trim(),
+            duracion: Number(r.min) || 0,
+            area: String(r.Area).trim(),
+            codigo: String(r.Voz).trim(),
+            linea: String(r.Linea).trim(),
+            fecha: String(r.Fecha).trim()
         }));
         
         if(payload.length > 50) {
             alert(`Para sincronizar más de 50 registros, usa los botones de "Auto-Actualizar" en la sección superior para garantizar el particionado correcto.`);
             return;
         }
-        enviarSyncMasivo(payload, null, true);
+
+        // NUEVA ESTRUCTURA GLOBAL (NO BORRA DATOS)
+        const payloadGlobal = {
+            meta: {
+                linea: "GLOBAL",
+                mes: "NA",
+                esPrimerLote: false
+            },
+            datos: payload
+        };
+
+        enviarSyncMasivo(payloadGlobal, "Sincronización Global Visible", true);
     }
 
     function renderChips() {
