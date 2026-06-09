@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Cargador INOPS Multi-Línea V8.11 - Datos Completos</title>
+<title>Cargador INOPS Multi-Línea V8.12 - Sin Límites</title>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
@@ -64,7 +64,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 <body>
 
 <div class="topbar">
-  <h1>⚙ Cargador INOPS — Hub de Control Dual (Enterprise V8.11)</h1>
+  <h1>⚙ Cargador INOPS — Hub de Control Dual (Enterprise V8.12)</h1>
   <span>Tenaris Tamsa | Análisis Multidimensional</span>
 </div>
 
@@ -201,7 +201,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
             return parseFloat(d) || 0;
         },
 
-        // INYECCIÓN DE MES Y LÍNEA EN CADA FILA PARA POWER AUTOMATE
         serializarPayload: (datos) => {
             return datos.map(r => {
                 return {
@@ -487,25 +486,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
             btnSync.innerHTML = '❌ Error - Reintentar';
             btnSync.disabled = false;
         }
-    }
-
-        const btnSync = document.getElementById('btn-sync');
-        btnSync.innerHTML = '⏳ Subiendo a Microsoft Lists...';
-        btnSync.disabled = true;
-
-        const paqueteLimpio = {
-            meta: { linea: "GLOBAL", mes: "NA", esPrimerLote: false },
-            datos: Helpers.serializarPayload(State.agrupados)
-        };
-
-        const payloadEmailJS = {
-            subject: "INOPS_SYNC_GLOBAL | Sincronización Global Visible",
-            data: JSON.stringify(paqueteLimpio)
-        };
-
-        enviarEmailJS(payloadEmailJS)
-            .then(() => { alert('✅ Éxito.'); btnSync.innerHTML = '✅ Tabla Sincronizada'; setStep(4); })
-            .catch(err => { alert('Error: ' + err.message); btnSync.innerHTML = '❌ Error'; btnSync.disabled = false; });
     }
 
     function renderChips() {
