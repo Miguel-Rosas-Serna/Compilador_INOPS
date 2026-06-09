@@ -445,11 +445,49 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         }
     }
 
-    function prepararSincronizacionVisible() {
-        if(State.agrupados.length > 50) {
-            alert(`Para sincronizar más de 50 registros, usa los botones de "Auto-Actualizar".`);
+async function prepararSincronizacionVisible() {
+        if(State.agrupados.length === 0) {
+            alert("No hay datos para sincronizar.");
             return;
         }
+
+        const btnSync = document.getElementById('btn-sync');
+        btnSync.innerHTML = '⏳ Calculando lotes...';
+        btnSync.disabled = true;
+
+        const payloadCompleto = State.agrupados;
+        const CHUNK_SIZE = 50;
+        const totalChunks = Math.ceil(payloadCompleto.length / CHUNK_SIZE);
+
+        try {
+            for (let i = 0; i < totalChunks; i++) {
+                const chunk = payloadCompleto.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+                const contexto = `Lote Visible ${i + 1}/${totalChunks}`;
+                
+                const paqueteLimpio = {
+                    meta: { linea: "GLOBAL", mes: "NA", esPrimerLote: false }, // false para que NO borre nada
+                    datos: Helpers.serializarPayload(chunk)
+                };
+
+                const payloadEmailJS = {
+                    subject: `INOPS_SYNC_GLOBAL | ${contexto}`,
+                    data: JSON.stringify(paqueteLimpio)
+                };
+
+                btnSync.innerHTML = `⏳ Enviando ${contexto}...`;
+                await enviarEmailJS(payloadEmailJS);
+            }
+
+            alert(`✅ Éxito: Se enviaron ${payloadCompleto.length} registros globales a Microsoft Lists.`);
+            btnSync.innerHTML = '✅ Tabla Sincronizada';
+            setStep(4);
+
+        } catch (err) {
+            alert('Error al sincronizar: ' + err.message);
+            btnSync.innerHTML = '❌ Error - Reintentar';
+            btnSync.disabled = false;
+        }
+    }
 
         const btnSync = document.getElementById('btn-sync');
         btnSync.innerHTML = '⏳ Subiendo a Microsoft Lists...';
