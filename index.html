@@ -2,12 +2,13 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Cargador INOPS Multi-Línea V8.9 - Fix Power Automate</title>
+<title>Cargador INOPS Multi-Línea V8.10 - Sincronía Perfecta</title>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
 
 <style>
+/* ── PALETA CORPORATIVA Y DISEÑO UI ── */
 :root { --tamsa-blue: #002D62; --tamsa-blue-hover: #001A3B; --tamsa-red: #D22730; --tamsa-red-hover: #A11D25; --tamsa-bg: #F0F2F5; --tamsa-surface: #FFFFFF; --tamsa-border: #D1D5DB; --tamsa-text: #1F2937; --tamsa-text-muted: #6B7280; --color-tubing: #004085; --color-casing: #D22730; --color-excel: #107C41; }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family: 'Segoe UI', Arial, sans-serif; background:var(--tamsa-bg); color:var(--tamsa-text); font-size:14px; line-height: 1.5;}
@@ -64,7 +65,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 <body>
 
 <div class="topbar">
-  <h1>⚙ Cargador INOPS — Hub de Control Dual (Enterprise V8.9)</h1>
+  <h1>⚙ Cargador INOPS — Hub de Control Dual (Enterprise V8.10)</h1>
   <span>Tenaris Tamsa | Análisis Multidimensional</span>
 </div>
 
@@ -156,17 +157,14 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 
     const State = {
         archivos: [], agrupados: [], filtrados: [], tsvData: '',
-        knowledgeBase: [], // sin localStorage para evitar error de Tracking Prevention
+        knowledgeBase: [],
         fuseInstance: null
     };
 
-    // Intenta cargar KB desde localStorage de forma segura (Edge puede bloquearlo)
     try {
         const kb = localStorage.getItem('inops_kb');
         if (kb) State.knowledgeBase = JSON.parse(kb);
-    } catch(e) {
-        console.warn('localStorage no disponible (Tracking Prevention). La KB de sesión funcionará en memoria.');
-    }
+    } catch(e) {}
 
     const Helpers = {
         escapeHTML: (str) => {
@@ -176,15 +174,14 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
             }[tag]));
         },
 
-        // ─── FIX PRINCIPAL: limpieza agresiva para que json() de Power Automate no falle ───
         cleanOData: (str) => {
             return String(str || '')
-                .replace(/[\r\n\t]+/g, ' ')         // saltos de línea y tabs → espacio
-                .replace(/["""''«»]/g, '')           // todas las comillas → eliminadas
-                .replace(/[\\]/g, '')                // barras invertidas → eliminadas
-                .replace(/[^\x20-\x7E\xC0-\xFF]/g, ' ') // solo ASCII imprimible + latin1 básico
+                .replace(/[\r\n\t]+/g, ' ')
+                .replace(/["""''«»]/g, '')
+                .replace(/[\\]/g, '')
+                .replace(/[^\x20-\x7E\xC0-\xFF]/g, ' ')
                 .replace(/\s+/g, ' ')
-                .substring(0, 200)                   // reducido a 200 para seguridad
+                .substring(0, 200)
                 .trim();
         },
 
@@ -205,29 +202,23 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
             return parseFloat(d) || 0;
         },
 
-        // ─── NUEVO: serializa payload de forma segura para Power Automate ───
+        // Devuelve el objeto, no un string
         serializarPayload: (datos) => {
-            // Construye el array manualmente para garantizar que cada campo sea seguro
-            const items = datos.map(r => {
+            return datos.map(r => {
                 return {
-                    obs:      String(r.obs      || '').replace(/["""''\\]/g, '').replace(/[\r\n\t]/g, ' ').substring(0, 200).trim(),
-                    duracion: Number(r.duracion) || 0,
-                    area:     String(r.area     || '').replace(/[^A-Z0-9]/gi, '').substring(0, 20).trim(),
-                    codigo:   String(r.codigo   || '').replace(/[^A-Z0-9_\-]/gi, '').substring(0, 20).trim(),
-                    linea:    String(r.linea    || '').replace(/[^A-Z]/gi, '').substring(0, 10).trim(),
-                    fecha:    String(r.fecha    || '').replace(/[^0-9\-/]/g, '').substring(0, 10).trim()
+                    obs:      String(r.obs || r.Observaciones || '').replace(/["""''\\]/g, '').replace(/[\r\n\t]/g, ' ').substring(0, 200).trim(),
+                    duracion: Number(r.duracion || r.min) || 0,
+                    area:     String(r.area || r.Area || '').replace(/[^A-Z0-9]/gi, '').substring(0, 20).trim(),
+                    codigo:   String(r.codigo || r.Voz || '').replace(/[^A-Z0-9_\-]/gi, '').substring(0, 20).trim(),
+                    linea:    String(r.linea || r.Linea || '').replace(/[^A-Z]/gi, '').substring(0, 10).trim(),
+                    fecha:    String(r.fecha || r.Fecha || '').replace(/[^0-9\-/]/g, '').substring(0, 10).trim()
                 };
             });
-            return JSON.stringify(items);
         }
     };
 
     function guardarKB() {
-        try {
-            localStorage.setItem('inops_kb', JSON.stringify(State.knowledgeBase));
-        } catch(e) {
-            // Silencioso — Tracking Prevention lo bloquea en Edge, la KB vive en memoria de sesión
-        }
+        try { localStorage.setItem('inops_kb', JSON.stringify(State.knowledgeBase)); } catch(e) {}
     }
 
     function inicializarKBCache() {
@@ -238,7 +229,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
     function determinarAreaHibrida(obs) {
         if (!obs) return { area: 'PENDIENTE', conf: 0, origen: '-' };
         const txt = obs.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        
         if (/etiquetadora|etiqueta|tracking/.test(txt)) return { area: 'TRACKING', conf: 100, origen: 'Regla' };
         if (/robot dm|robot de dm|pp pin|pp box|celda robotica|celda/.test(txt)) return { area: 'ROBOTICA', conf: 100, origen: 'Regla' };
         if (/traslape|tubo a tubo|pantalla|mascarilla da[nñ]ada|camara|vision|asistencia traceability/.test(txt)) return { area: 'VISION', conf: 100, origen: 'Regla' };
@@ -326,32 +316,21 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
             const obsNorm = obsClean.toLowerCase();
             const fecha = (row.Fecha || '').trim();
             const linea = lineaForzada ? lineaForzada.trim().toUpperCase() : (row.Linea || '').trim().toUpperCase();
-            
             const key = `${fecha}|${linea}|${obsNorm}`; 
             
             if (!consolidados[key]) {
                 const analisis = determinarAreaHibrida(obsClean);
                 consolidados[key] = {
-                    id: key,
-                    Voz: (row.Codigo || '').trim(),
-                    Linea: linea,
-                    Area: analisis.area,
-                    Confianza: analisis.conf,
-                    Mes: Helpers.extraerMes(fecha),
-                    Tipo: (row.Tipo || 'Consolidado').trim(), 
-                    Fecha: fecha,
-                    Turno: (row.Turno || '').trim(),
-                    Inicio: (row.Inicio || '').trim(),
-                    Fin: (row.Fin || '').trim(),
-                    Observaciones: obsClean,
-                    min: 0
+                    id: key, Voz: (row.Codigo || '').trim(), Linea: linea,
+                    Area: analisis.area, Confianza: analisis.conf, Mes: Helpers.extraerMes(fecha),
+                    Tipo: (row.Tipo || 'Consolidado').trim(), Fecha: fecha,
+                    Turno: (row.Turno || '').trim(), Inicio: (row.Inicio || '').trim(),
+                    Fin: (row.Fin || '').trim(), Observaciones: obsClean, min: 0
                 };
             }
-            
             consolidados[key].min += Helpers.durAMin(row.Duracion);
             if (row.Fin && row.Fin.trim() !== '') consolidados[key].Fin = row.Fin.trim();
         });
-
         return Object.values(consolidados).map(g => ({ ...g, min: Math.round(g.min*100)/100 }));
     }
 
@@ -386,15 +365,12 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         const listos = State.archivos.filter(a => a.estado === 'ok');
         if (!listos.length) return;
         document.getElementById('btn-procesar').disabled = true;
-
         let todosLosRows = [];
         listos.forEach(arc => todosLosRows.push(...arc.rows));
 
         setTimeout(() => {
             State.agrupados = consolidarDatosUnificados(todosLosRows, null);
-            poblarFiltros();
-            aplicarFiltros(); 
-            setStep(3);
+            poblarFiltros(); aplicarFiltros(); setStep(3);
             document.getElementById('btn-procesar').disabled = false;
             document.getElementById('card-result').classList.remove('hidden');
             document.getElementById('card-result').scrollIntoView({ behavior: 'smooth' });
@@ -418,80 +394,61 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                 if(datosUnificados.length === 0) {
                     alert("El archivo no contiene datos válidos.");
                     btnSync.innerHTML = '🔄 Subir actualización a Microsoft Lists';
-                    btnSync.disabled = false;
-                    input.value = '';
-                    return;
+                    btnSync.disabled = false; input.value = ''; return;
                 }
 
                 const mesDetectado = datosUnificados[0].Mes;
-
-                const payloadCompleto = datosUnificados.map(r => ({
-                    obs:      r.Observaciones,
-                    duracion: r.min,
-                    area:     r.Area,
-                    codigo:   r.Voz,
-                    linea:    r.Linea,
-                    fecha:    r.Fecha
-                }));
-
-                input.value = ''; 
-
                 const CHUNK_SIZE = 50;
-                const totalChunks = Math.ceil(payloadCompleto.length / CHUNK_SIZE);
+                const totalChunks = Math.ceil(datosUnificados.length / CHUNK_SIZE);
 
                 for (let i = 0; i < totalChunks; i++) {
-                    const chunk = payloadCompleto.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+                    const chunk = datosUnificados.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
                     const contexto = `Lote ${i + 1}/${totalChunks} | ${lineaAsignada} (${mesDetectado})`;
                     
-                    // ─── FIX: meta como campos planos + datos como string serializado seguro ───
+                    // EMPAQUETADO MAESTRO V8.10: Todo en un solo JSON
+                    const paqueteLimpio = {
+                        meta: {
+                            linea: lineaAsignada,
+                            mes: mesDetectado,
+                            esPrimerLote: (i === 0)
+                        },
+                        datos: Helpers.serializarPayload(chunk)
+                    };
+
                     const payloadEmailJS = {
-                        subject:      `INOPS_SYNC_GLOBAL | ${contexto}`,
-                        meta_linea:   lineaAsignada,
-                        meta_mes:     mesDetectado,
-                        es_primer_lote: (i === 0) ? "true" : "false",   // STRING no booleano
-                        data:         Helpers.serializarPayload(chunk)   // JSON limpio
+                        subject: `INOPS_SYNC_GLOBAL | ${contexto}`,
+                        data: JSON.stringify(paqueteLimpio)
                     };
 
                     btnSync.innerHTML = `⏳ Enviando ${contexto}...`;
                     await enviarEmailJS(payloadEmailJS);
                 }
 
-                alert(`✅ Éxito: Se enviaron ${payloadCompleto.length} registros. Se reemplazará la información de ${mesDetectado} para ${lineaAsignada}.`);
+                alert(`✅ Éxito: Se enviaron ${datosUnificados.length} registros. Se reemplazará la información de ${mesDetectado} para ${lineaAsignada}.`);
                 btnSync.innerHTML = '✅ Actualización Completada';
                 setStep(4);
 
             } catch(err) { 
                 alert('Error: ' + err.message); 
                 btnSync.innerHTML = '🔄 Subir actualización a Microsoft Lists';
-                btnSync.disabled = false;
-                input.value = '';
+                btnSync.disabled = false; input.value = '';
             }
         };
         reader.readAsArrayBuffer(file);
     }
 
-    // ─── Función de envío unificada (reemplaza enviarSyncMasivo) ───
     async function enviarEmailJS(payloadEmailJS) {
         try {
             await emailjs.send(CFG.emailJsService, CFG.emailJsTemplate, payloadEmailJS);
         } catch (err) {
             console.error('EmailJS error:', err);
-            throw new Error('Error al enviar a EmailJS: ' + (err.text || err.message || JSON.stringify(err)));
+            throw new Error('Error al enviar a EmailJS');
         }
     }
 
     function prepararSincronizacionVisible() {
-        const payload = State.agrupados.map(r => ({
-            obs:      r.Observaciones,
-            duracion: r.min,
-            area:     r.Area,
-            codigo:   r.Voz,
-            linea:    r.Linea,
-            fecha:    r.Fecha
-        }));
-        
-        if(payload.length > 50) {
-            alert(`Para sincronizar más de 50 registros, usa los botones de "Auto-Actualizar" en la sección superior para garantizar el particionado correcto.`);
+        if(State.agrupados.length > 50) {
+            alert(`Para sincronizar más de 50 registros, usa los botones de "Auto-Actualizar".`);
             return;
         }
 
@@ -499,45 +456,30 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         btnSync.innerHTML = '⏳ Subiendo a Microsoft Lists...';
         btnSync.disabled = true;
 
-        // ─── FIX: estructura plana compatible con Power Automate ───
+        const paqueteLimpio = {
+            meta: { linea: "GLOBAL", mes: "NA", esPrimerLote: false },
+            datos: Helpers.serializarPayload(State.agrupados)
+        };
+
         const payloadEmailJS = {
-            subject:        "INOPS_SYNC_GLOBAL | Sincronización Global Visible",
-            meta_linea:     "GLOBAL",
-            meta_mes:       "NA",
-            es_primer_lote: "false",
-            data:           Helpers.serializarPayload(payload)
+            subject: "INOPS_SYNC_GLOBAL | Sincronización Global Visible",
+            data: JSON.stringify(paqueteLimpio)
         };
 
         enviarEmailJS(payloadEmailJS)
-            .then(() => {
-                alert('✅ Éxito: Se enviaron los datos.');
-                btnSync.innerHTML = '✅ Tabla Sincronizada';
-                setStep(4);
-            })
-            .catch(err => {
-                alert('Error al sincronizar: ' + err.message);
-                btnSync.innerHTML = '❌ Error - Reintentar';
-                btnSync.disabled = false;
-            });
+            .then(() => { alert('✅ Éxito.'); btnSync.innerHTML = '✅ Tabla Sincronizada'; setStep(4); })
+            .catch(err => { alert('Error: ' + err.message); btnSync.innerHTML = '❌ Error'; btnSync.disabled = false; });
     }
 
     function renderChips() {
         const grid = document.getElementById('files-grid');
         grid.style.display = State.archivos.length ? 'grid' : 'none';
-        
         let html = '';
         State.archivos.forEach((a, i) => {
             const color = a.linea==='TUBING'?'var(--color-tubing)':'var(--color-casing)';
             const icon = a.estado === 'ok' ? '✅' : a.estado === 'error' ? '❌' : '⏳';
             const detail = a.estado === 'ok' ? `${a.rawCount} registros` : a.estado === 'error' ? 'Error' : 'Procesando...';
-            html += `<div class="file-chip" style="border-left: 4px solid ${color}">
-                <span class="ficon">${icon}</span>
-                <div style="flex:1;min-width:0">
-                    <div class="fname">${Helpers.escapeHTML(a.name)}</div>
-                    <div class="frows"><span style="color:${color}; font-weight:700;">[${Helpers.escapeHTML(a.linea)}]</span> ${detail}</div>
-                </div>
-                <span class="fdel" data-idx="${i}">×</span>
-            </div>`;
+            html += `<div class="file-chip" style="border-left: 4px solid ${color}"><span class="ficon">${icon}</span><div style="flex:1;min-width:0"><div class="fname">${Helpers.escapeHTML(a.name)}</div><div class="frows"><span style="color:${color}; font-weight:700;">[${Helpers.escapeHTML(a.linea)}]</span> ${detail}</div></div><span class="fdel" data-idx="${i}">×</span></div>`;
         });
         grid.innerHTML = html;
     }
@@ -545,7 +487,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
     function poblarFiltros() {
         const buildOpts = (arr) => `<option value="ALL">Mostrar Todos</option>` + arr.map(x => `<option value="${Helpers.escapeHTML(x)}">${Helpers.escapeHTML(x)}</option>`).join('');
         const meses = [...new Set(State.agrupados.map(a => a.Mes).filter(Boolean))].sort((a, b) => (CFG.mesesOrden.indexOf(a) === -1 ? 999 : CFG.mesesOrden.indexOf(a)) - (CFG.mesesOrden.indexOf(b) === -1 ? 999 : CFG.mesesOrden.indexOf(b)));
-        
         document.getElementById('f-linea').innerHTML = buildOpts([...new Set(State.agrupados.map(a => a.Linea).filter(Boolean))].sort()); 
         document.getElementById('f-mes').innerHTML = buildOpts(meses);
         document.getElementById('f-turno').innerHTML = buildOpts([...new Set(State.agrupados.map(a => a.Turno).filter(Boolean))].sort());
@@ -556,165 +497,35 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 
     function aplicarFiltros() {
         const f = { l: document.getElementById('f-linea').value, m: document.getElementById('f-mes').value, t: document.getElementById('f-turno').value, ty: document.getElementById('f-tipo').value, c: document.getElementById('f-codigo').value, a: document.getElementById('f-area').value };
-        
-        State.filtrados = State.agrupados.filter(a => 
-            (f.l === 'ALL' || a.Linea === f.l) && (f.m === 'ALL' || a.Mes === f.m) && 
-            (f.t === 'ALL' || String(a.Turno) === String(f.t)) && (f.ty === 'ALL' || a.Tipo === f.ty) && 
-            (f.c === 'ALL' || String(a.Voz) === String(f.c)) && (f.a === 'ALL' || a.Area === f.a)
-        );
+        State.filtrados = State.agrupados.filter(a => (f.l === 'ALL' || a.Linea === f.l) && (f.m === 'ALL' || a.Mes === f.m) && (f.t === 'ALL' || String(a.Turno) === String(f.t)) && (f.ty === 'ALL' || a.Tipo === f.ty) && (f.c === 'ALL' || String(a.Voz) === String(f.c)) && (f.a === 'ALL' || a.Area === f.a));
         renderTabla();
     }
 
     function renderTabla() {
         const totalMin = State.filtrados.reduce((s,r) => s + r.min, 0);
         const pendientes = State.filtrados.filter(r => r.Area === 'PENDIENTE').length;
-
-        document.getElementById('stats').innerHTML = `
-            <div class="stat"><div class="n" style="${pendientes > 0 ? 'color:var(--tamsa-red)' : ''}">${pendientes}</div><div class="l">Fallas Pendientes</div></div>
-            <div class="stat"><div class="n">${State.filtrados.length}</div><div class="l">Eventos Visibles</div></div>
-            <div class="stat"><div class="n">${totalMin.toFixed(1)}</div><div class="l">Minutos Totales</div></div>
-            <div class="stat"><div class="n">${document.getElementById('f-linea').value === 'ALL' ? 'Ambas' : document.getElementById('f-linea').value}</div><div class="l">Línea Activa</div></div>
-            <div class="stat"><div class="n">${document.getElementById('f-area').value === 'ALL' ? 'Todas' : document.getElementById('f-area').value}</div><div class="l">Área Activa</div></div>
-            <div class="stat"><div class="n">${document.getElementById('f-codigo').value === 'ALL' ? 'Todos' : document.getElementById('f-codigo').value}</div><div class="l">Código Activo</div></div>
-        `;
-
-        document.getElementById('tbody').innerHTML = State.filtrados.map(r => {
-            return `
-            <tr>
-              <td style="font-weight:700;color:var(--tamsa-blue);text-align:center">${Helpers.escapeHTML(r.Voz)}</td>
-              <td style="text-align:center"><span class="linea-tag tag-${Helpers.escapeHTML(r.Linea)}">${Helpers.escapeHTML(r.Linea)}</span></td>
-              <td style="vertical-align: middle;">
-                <div style="display:flex; flex-direction:column; gap:4px; align-items:center;">
-                  <select class="area-select dynamic-area-change area-${r.Area}" data-id="${Helpers.escapeHTML(r.id)}">
-                    <option value="PENDIENTE" ${r.Area==='PENDIENTE'?'selected':''}>⚠️ PENDIENTE</option>
-                    <option value="TRACKING" ${r.Area==='TRACKING'?'selected':''}>TRACKING</option>
-                    <option value="ROBOTICA" ${r.Area==='ROBOTICA'?'selected':''}>ROBOTICA</option>
-                    <option value="VISION" ${r.Area==='VISION'?'selected':''}>VISION</option>
-                    <option value="OTROS" ${r.Area==='OTROS'?'selected':''}>OTROS</option>
-                  </select>
-                  <span style="font-size:9px; color:var(--tamsa-text-muted);">Seguridad: ${r.Confianza}%</span>
-                </div>
-              </td>
-              <td style="text-align:center">${Helpers.escapeHTML(r.Mes)}</td>
-              <td><span style="background:#E5E7EB; color:var(--tamsa-text); padding:2px 8px; border-radius:4px; font-size:11px">${Helpers.escapeHTML(r.Tipo)}</span></td>
-              <td>${Helpers.escapeHTML(r.Fecha)}</td>
-              <td style="text-align:center">${Helpers.escapeHTML(r.Turno)}</td>
-              <td>${Helpers.escapeHTML(r.Inicio)}</td>
-              <td>${Helpers.escapeHTML(r.Fin)}</td>
-              <td style="text-align:right;font-weight:700">${r.min}</td>
-              <td class="obs-col">${Helpers.escapeHTML(r.Observaciones)}</td>
-            </tr>`
-        }).join('');
-
+        document.getElementById('stats').innerHTML = `<div class="stat"><div class="n" style="${pendientes > 0 ? 'color:var(--tamsa-red)' : ''}">${pendientes}</div><div class="l">Fallas Pendientes</div></div><div class="stat"><div class="n">${State.filtrados.length}</div><div class="l">Eventos Visibles</div></div><div class="stat"><div class="n">${totalMin.toFixed(1)}</div><div class="l">Minutos Totales</div></div><div class="stat"><div class="n">${document.getElementById('f-linea').value === 'ALL' ? 'Ambas' : document.getElementById('f-linea').value}</div><div class="l">Línea Activa</div></div><div class="stat"><div class="n">${document.getElementById('f-area').value === 'ALL' ? 'Todas' : document.getElementById('f-area').value}</div><div class="l">Área Activa</div></div><div class="stat"><div class="n">${document.getElementById('f-codigo').value === 'ALL' ? 'Todos' : document.getElementById('f-codigo').value}</div><div class="l">Código Activo</div></div>`;
+        document.getElementById('tbody').innerHTML = State.filtrados.map(r => `<tr><td style="font-weight:700;color:var(--tamsa-blue);text-align:center">${Helpers.escapeHTML(r.Voz)}</td><td style="text-align:center"><span class="linea-tag tag-${Helpers.escapeHTML(r.Linea)}">${Helpers.escapeHTML(r.Linea)}</span></td><td style="vertical-align: middle;"><div style="display:flex; flex-direction:column; gap:4px; align-items:center;"><select class="area-select dynamic-area-change area-${r.Area}" data-id="${Helpers.escapeHTML(r.id)}"><option value="PENDIENTE" ${r.Area==='PENDIENTE'?'selected':''}>⚠️ PENDIENTE</option><option value="TRACKING" ${r.Area==='TRACKING'?'selected':''}>TRACKING</option><option value="ROBOTICA" ${r.Area==='ROBOTICA'?'selected':''}>ROBOTICA</option><option value="VISION" ${r.Area==='VISION'?'selected':''}>VISION</option><option value="OTROS" ${r.Area==='OTROS'?'selected':''}>OTROS</option></select><span style="font-size:9px; color:var(--tamsa-text-muted);">Seguridad: ${r.Confianza}%</span></div></td><td style="text-align:center">${Helpers.escapeHTML(r.Mes)}</td><td><span style="background:#E5E7EB; color:var(--tamsa-text); padding:2px 8px; border-radius:4px; font-size:11px">${Helpers.escapeHTML(r.Tipo)}</span></td><td>${Helpers.escapeHTML(r.Fecha)}</td><td style="text-align:center">${Helpers.escapeHTML(r.Turno)}</td><td>${Helpers.escapeHTML(r.Inicio)}</td><td>${Helpers.escapeHTML(r.Fin)}</td><td style="text-align:right;font-weight:700">${r.min}</td><td class="obs-col">${Helpers.escapeHTML(r.Observaciones)}</td></tr>`).join('');
         document.getElementById('tfoot').innerHTML = `<tr><td colspan="9" style="text-align:right">TOTAL VISIBLE</td><td style="text-align:right">${totalMin.toFixed(2)}</td><td></td></tr>`;
-        
         const hdrs = ['Código', 'Línea', 'Área', 'Fecha', 'Turno', 'Inicio', 'Fin', 'Duración (min)', 'Observaciones'];
         State.tsvData = hdrs.join('\t') + '\n' + State.filtrados.map(r => [r.Voz, r.Linea, r.Area, r.Fecha, r.Turno, r.Inicio, r.Fin, r.min, r.Observaciones].map(v => String(v||'').replace(/\t/g,' ')).join('\t')).join('\n');
     }
 
     function initEvents() {
-        document.querySelectorAll('.drop').forEach(el => {
-            el.addEventListener('click', () => document.getElementById(el.getAttribute('data-target')).click());
-            el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('over'); });
-            el.addEventListener('dragleave', () => el.classList.remove('over'));
-            el.addEventListener('drop', e => { 
-                e.preventDefault(); el.classList.remove('over'); 
-                const targetId = el.getAttribute('data-target');
-                const linea = targetId.includes('tubing') ? 'TUBING' : 'CASING';
-                if (e.dataTransfer.files.length) agregarFiles(e.dataTransfer.files, linea); 
-            });
-        });
-
-        document.getElementById('fi-tubing').addEventListener('change', function() { if(this.files.length) agregarFiles(this.files, 'TUBING'); });
-        document.getElementById('fi-casing').addEventListener('change', function() { if(this.files.length) agregarFiles(this.files, 'CASING'); });
-        
-        document.getElementById('btn-mensual-tubing').addEventListener('click', () => document.getElementById('fi-mensual-tubing').click());
-        document.getElementById('btn-mensual-casing').addEventListener('click', () => document.getElementById('fi-mensual-casing').click());
-        document.getElementById('fi-mensual-tubing').addEventListener('change', function() { if(this.files.length) procesarCargaMensual(this, 'TUBING'); });
-        document.getElementById('fi-mensual-casing').addEventListener('change', function() { if(this.files.length) procesarCargaMensual(this, 'CASING'); });
-
-        document.getElementById('files-grid').addEventListener('click', (e) => {
-            if(e.target.classList.contains('fdel')) {
-                State.archivos.splice(e.target.getAttribute('data-idx'), 1);
-                renderChips();
-                if(!State.archivos.length) document.getElementById('btn-procesar-row').style.display='none';
-            }
-        });
-
-        document.getElementById('btn-procesar').addEventListener('click', procesarTodo);
-        document.getElementById('btn-descartar').addEventListener('click', limpiarTodo);
-        document.getElementById('btn-sync').addEventListener('click', prepararSincronizacionVisible);
-        document.getElementById('btn-reiniciar').addEventListener('click', limpiarTodo);
-        
-        document.getElementById('btn-copy').addEventListener('click', async function() {
-            try { await navigator.clipboard.writeText(State.tsvData); } catch {
-                const ta = document.createElement('textarea'); ta.value = State.tsvData; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-            }
-            const orig = this.innerHTML; this.innerHTML = '✅ Copiado';
-            setTimeout(() => this.innerHTML = orig, 3000);
-            setStep(4);
-        });
-
-        document.querySelectorAll('[data-export]').forEach(btn => {
-            btn.addEventListener('click', (e) => exportarExcel(e.target.getAttribute('data-export'), e.target.id));
-        });
-
-        document.getElementById('tbody').addEventListener('change', (e) => {
-            if(e.target.classList.contains('dynamic-area-change')) {
-                const rowId = e.target.getAttribute('data-id');
-                const nuevaArea = e.target.value;
-                
-                const row = State.agrupados.find(r => r.id === rowId);
-                if(!row) return;
-                
-                const fStates = ['f-linea', 'f-mes', 'f-turno', 'f-tipo', 'f-codigo', 'f-area'].map(id => document.getElementById(id).value);
-                row.Area = nuevaArea; row.Confianza = 100;
-                
-                const txtNorm = row.Observaciones.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                const existente = State.knowledgeBase.find(kb => kb.texto === txtNorm);
-                if (existente) existente.area = nuevaArea;
-                else State.knowledgeBase.push({ texto: txtNorm, area: nuevaArea });
-                
-                guardarKB();
-                inicializarKBCache(); 
-                
-                poblarFiltros();
-                fStates.forEach((val, i) => document.getElementById(['f-linea', 'f-mes', 'f-turno', 'f-tipo', 'f-codigo', 'f-area'][i]).value = val);
-                aplicarFiltros();
-            }
-        });
-
+        document.querySelectorAll('.drop').forEach(el => { el.addEventListener('click', () => document.getElementById(el.getAttribute('data-target')).click()); el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('over'); }); el.addEventListener('dragleave', () => el.classList.remove('over')); el.addEventListener('drop', e => { e.preventDefault(); el.classList.remove('over'); const targetId = el.getAttribute('data-target'); const linea = targetId.includes('tubing') ? 'TUBING' : 'CASING'; if (e.dataTransfer.files.length) agregarFiles(e.dataTransfer.files, linea); }); });
+        document.getElementById('fi-tubing').addEventListener('change', function() { if(this.files.length) agregarFiles(this.files, 'TUBING'); }); document.getElementById('fi-casing').addEventListener('change', function() { if(this.files.length) agregarFiles(this.files, 'CASING'); });
+        document.getElementById('btn-mensual-tubing').addEventListener('click', () => document.getElementById('fi-mensual-tubing').click()); document.getElementById('btn-mensual-casing').addEventListener('click', () => document.getElementById('fi-mensual-casing').click()); document.getElementById('fi-mensual-tubing').addEventListener('change', function() { if(this.files.length) procesarCargaMensual(this, 'TUBING'); }); document.getElementById('fi-mensual-casing').addEventListener('change', function() { if(this.files.length) procesarCargaMensual(this, 'CASING'); });
+        document.getElementById('files-grid').addEventListener('click', (e) => { if(e.target.classList.contains('fdel')) { State.archivos.splice(e.target.getAttribute('data-idx'), 1); renderChips(); if(!State.archivos.length) document.getElementById('btn-procesar-row').style.display='none'; } });
+        document.getElementById('btn-procesar').addEventListener('click', procesarTodo); document.getElementById('btn-descartar').addEventListener('click', limpiarTodo); document.getElementById('btn-sync').addEventListener('click', prepararSincronizacionVisible); document.getElementById('btn-reiniciar').addEventListener('click', limpiarTodo);
+        document.getElementById('btn-copy').addEventListener('click', async function() { try { await navigator.clipboard.writeText(State.tsvData); } catch { const ta = document.createElement('textarea'); ta.value = State.tsvData; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); } const orig = this.innerHTML; this.innerHTML = '✅ Copiado'; setTimeout(() => this.innerHTML = orig, 3000); setStep(4); });
+        document.querySelectorAll('[data-export]').forEach(btn => { btn.addEventListener('click', (e) => exportarExcel(e.target.getAttribute('data-export'), e.target.id)); });
+        document.getElementById('tbody').addEventListener('change', (e) => { if(e.target.classList.contains('dynamic-area-change')) { const rowId = e.target.getAttribute('data-id'); const nuevaArea = e.target.value; const row = State.agrupados.find(r => r.id === rowId); if(!row) return; const fStates = ['f-linea', 'f-mes', 'f-turno', 'f-tipo', 'f-codigo', 'f-area'].map(id => document.getElementById(id).value); row.Area = nuevaArea; row.Confianza = 100; const txtNorm = row.Observaciones.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); const existente = State.knowledgeBase.find(kb => kb.texto === txtNorm); if (existente) existente.area = nuevaArea; else State.knowledgeBase.push({ texto: txtNorm, area: nuevaArea }); guardarKB(); inicializarKBCache(); poblarFiltros(); fStates.forEach((val, i) => document.getElementById(['f-linea', 'f-mes', 'f-turno', 'f-tipo', 'f-codigo', 'f-area'][i]).value = val); aplicarFiltros(); } });
         document.querySelectorAll('.evt-filter').forEach(f => f.addEventListener('change', aplicarFiltros));
     }
-
     function setStep(n) { for (let i=1; i<=4; i++) document.getElementById('st'+i).className = 'step' + (i<n?' done':i===n?' active':''); }
     function limpiarTodo() { State.archivos = []; State.agrupados = []; State.filtrados = []; document.getElementById('files-grid').style.display = 'none'; document.getElementById('btn-procesar-row').style.display = 'none'; document.getElementById('card-result').classList.add('hidden'); setStep(1); document.getElementById('btn-sync').innerHTML = '🔄 Subir actualización a Microsoft Lists'; document.getElementById('btn-sync').disabled = false; }
-    
-    function exportarExcel(filtro, btnId) {
-        if (!State.agrupados.length) return;
-        let exportData = filtro === 'ALL' ? State.agrupados : State.agrupados.filter(r => r.Linea === filtro);
-        if (exportData.length === 0) return alert('No hay datos procesados para esta línea.');
-
-        const datosMes = {};
-        exportData.forEach(r => {
-            const mes = r.Mes || 'Sin_Mes';
-            if (!datosMes[mes]) datosMes[mes] = [];
-            datosMes[mes].push({ "Código INOP": r.Voz, "Línea Producción": r.Linea, "Área Asignada": r.Area, "Fecha Evento": r.Fecha, "Turno": r.Turno, "Hora Inicio": r.Inicio, "Hora Fin": r.Fin, "Duración (min)": r.min, "Observaciones de Falla": r.Observaciones });
-        });
-
-        const wb = XLSX.utils.book_new();
-        Object.keys(datosMes).sort((a,b) => (CFG.mesesOrden.indexOf(a) === -1 ? 999 : CFG.mesesOrden.indexOf(a)) - (CFG.mesesOrden.indexOf(b) === -1 ? 999 : CFG.mesesOrden.indexOf(b)))
-        .forEach(m => XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(datosMes[m]), m));
-        
-        XLSX.writeFile(wb, filtro === 'ALL' ? 'Reporte_Global_TenarisTamsa.xlsx' : `Reporte_TenarisTamsa_${filtro}.xlsx`);
-        const btn = document.getElementById(btnId); const orig = btn.innerHTML; btn.innerHTML = '✅ Descarga Completada'; setTimeout(() => btn.innerHTML = orig, 3000); setStep(4);
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        inicializarKBCache();
-        initEvents();
-    });
-
+    function exportarExcel(filtro, btnId) { if (!State.agrupados.length) return; let exportData = filtro === 'ALL' ? State.agrupados : State.agrupados.filter(r => r.Linea === filtro); if (exportData.length === 0) return alert('No hay datos procesados para esta línea.'); const datosMes = {}; exportData.forEach(r => { const mes = r.Mes || 'Sin_Mes'; if (!datosMes[mes]) datosMes[mes] = []; datosMes[mes].push({ "Código INOP": r.Voz, "Línea Producción": r.Linea, "Área Asignada": r.Area, "Fecha Evento": r.Fecha, "Turno": r.Turno, "Hora Inicio": r.Inicio, "Hora Fin": r.Fin, "Duración (min)": r.min, "Observaciones de Falla": r.Observaciones }); }); const wb = XLSX.utils.book_new(); Object.keys(datosMes).sort((a,b) => (CFG.mesesOrden.indexOf(a) === -1 ? 999 : CFG.mesesOrden.indexOf(a)) - (CFG.mesesOrden.indexOf(b) === -1 ? 999 : CFG.mesesOrden.indexOf(b))).forEach(m => XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(datosMes[m]), m)); XLSX.writeFile(wb, filtro === 'ALL' ? 'Reporte_Global_TenarisTamsa.xlsx' : `Reporte_TenarisTamsa_${filtro}.xlsx`); const btn = document.getElementById(btnId); const orig = btn.innerHTML; btn.innerHTML = '✅ Descarga Completada'; setTimeout(() => btn.innerHTML = orig, 3000); setStep(4); }
+    document.addEventListener('DOMContentLoaded', () => { inicializarKBCache(); initEvents(); });
 })();
 </script>
 </body>
