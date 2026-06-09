@@ -2,13 +2,12 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Cargador INOPS Multi-Línea V8.10 - Sincronía Perfecta</title>
+<title>Cargador INOPS Multi-Línea V8.11 - Datos Completos</title>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
 
 <style>
-/* ── PALETA CORPORATIVA Y DISEÑO UI ── */
 :root { --tamsa-blue: #002D62; --tamsa-blue-hover: #001A3B; --tamsa-red: #D22730; --tamsa-red-hover: #A11D25; --tamsa-bg: #F0F2F5; --tamsa-surface: #FFFFFF; --tamsa-border: #D1D5DB; --tamsa-text: #1F2937; --tamsa-text-muted: #6B7280; --color-tubing: #004085; --color-casing: #D22730; --color-excel: #107C41; }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family: 'Segoe UI', Arial, sans-serif; background:var(--tamsa-bg); color:var(--tamsa-text); font-size:14px; line-height: 1.5;}
@@ -65,7 +64,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 <body>
 
 <div class="topbar">
-  <h1>⚙ Cargador INOPS — Hub de Control Dual (Enterprise V8.10)</h1>
+  <h1>⚙ Cargador INOPS — Hub de Control Dual (Enterprise V8.11)</h1>
   <span>Tenaris Tamsa | Análisis Multidimensional</span>
 </div>
 
@@ -202,7 +201,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
             return parseFloat(d) || 0;
         },
 
-        // Devuelve el objeto, no un string
+        // INYECCIÓN DE MES Y LÍNEA EN CADA FILA PARA POWER AUTOMATE
         serializarPayload: (datos) => {
             return datos.map(r => {
                 return {
@@ -211,7 +210,8 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                     area:     String(r.area || r.Area || '').replace(/[^A-Z0-9]/gi, '').substring(0, 20).trim(),
                     codigo:   String(r.codigo || r.Voz || '').replace(/[^A-Z0-9_\-]/gi, '').substring(0, 20).trim(),
                     linea:    String(r.linea || r.Linea || '').replace(/[^A-Z]/gi, '').substring(0, 10).trim(),
-                    fecha:    String(r.fecha || r.Fecha || '').replace(/[^0-9\-/]/g, '').substring(0, 10).trim()
+                    fecha:    String(r.fecha || r.Fecha || '').replace(/[^0-9\-/]/g, '').substring(0, 10).trim(),
+                    mes:      String(r.mes || r.Mes || Helpers.extraerMes(r.fecha || r.Fecha)).substring(0, 15).trim()
                 };
             });
         }
@@ -405,7 +405,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                     const chunk = datosUnificados.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
                     const contexto = `Lote ${i + 1}/${totalChunks} | ${lineaAsignada} (${mesDetectado})`;
                     
-                    // EMPAQUETADO MAESTRO V8.10: Todo en un solo JSON
                     const paqueteLimpio = {
                         meta: {
                             linea: lineaAsignada,
