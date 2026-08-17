@@ -2,11 +2,10 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Cargador INOPS Multi-Línea V8.15 - Dashboard Edition</title>
+<title>Cargador INOPS Multi-Línea V8.16 - HD Dashboard Edition</title>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
-<!-- Librería para el Dashboard Visual -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
@@ -63,7 +62,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 .btn:disabled{opacity:.5; cursor:not-allowed; box-shadow: none !important;}
 .hidden{display:none}
 
-/* ESTILOS PARA EL DASHBOARD VISUAL */
+/* ESTILOS DASHBOARD HD */
 .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 24px; border-top: 2px dashed var(--tamsa-border); padding-top: 24px; }
 .chart-box { background: var(--tamsa-surface); border: 1px solid var(--tamsa-border); border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
 .chart-full { grid-column: span 2; }
@@ -74,7 +73,7 @@ canvas { max-height: 300px; width: 100%; }
 <body>
 
 <div class="topbar">
-  <h1>⚙ Cargador INOPS — Hub de Control Dual (Enterprise V8.15)</h1>
+  <h1>⚙ Cargador INOPS — Hub de Control Dual (Enterprise V8.16 HD)</h1>
   <span>Tenaris Tamsa | Análisis Multidimensional</span>
 </div>
 
@@ -156,7 +155,7 @@ canvas { max-height: 300px; width: 100%; }
       </table>
     </div>
 
-    <!-- NUEVO: CONTENEDOR DEL DASHBOARD -->
+    <!-- DASHBOARD HD -->
     <div class="dashboard-grid" id="panel-graficas" style="display: none;">
       <div class="chart-box chart-full">
         <h3>TENDENCIA DE FALLAS Y TIEMPOS DE PARO</h3>
@@ -202,7 +201,6 @@ canvas { max-height: 300px; width: 100%; }
         fuseInstance: null
     };
 
-    // VARIABLES PARA LAS GRÁFICAS
     let misGraficas = {};
 
     try {
@@ -639,7 +637,7 @@ canvas { max-height: 300px; width: 100%; }
         renderTabla();
     }
 
-function renderDashboard() {
+    function renderDashboard() {
         document.getElementById('panel-graficas').style.display = 'grid';
 
         if(misGraficas.tendencia) misGraficas.tendencia.destroy();
@@ -650,25 +648,20 @@ function renderDashboard() {
 
         const diasSet = new Set();
         datosReales.forEach(r => diasSet.add(r.Fecha));
-        const fechasOrdenadas = Array.from(diasSet).sort(); // Las fechas completas ("2026-08-02")
+        const fechasOrdenadas = Array.from(diasSet).sort();
 
-        // ---------------------------------------------------------
-        // TRUCO HD: CONVERTIR FECHA EN DOS LÍNEAS (DÍA Y MES)
-        // ---------------------------------------------------------
         const mesesNombres = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
         let mesPrevio = "";
         
         const labelsDias = fechasOrdenadas.map(fecha => {
             const partes = fecha.split('-');
             if(partes.length === 3) {
-                const dia = parseInt(partes[2], 10).toString(); // Ej. "02" pasa a ser "2"
-                const mesActual = mesesNombres[parseInt(partes[1], 10) - 1]; // Ej. "Agosto"
+                const dia = parseInt(partes[2], 10).toString();
+                const mesActual = mesesNombres[parseInt(partes[1], 10) - 1];
 
-                // Solo imprimimos el nombre del mes si es diferente al día anterior (agrupación visual limpia)
                 const textoMes = (mesActual !== mesPrevio) ? mesActual : "";
                 mesPrevio = mesActual;
 
-                // Retornar un array de 2 elementos hace que Chart.js lo dibuje en 2 renglones separados
                 return [dia, textoMes]; 
             }
             return fecha;
@@ -694,7 +687,7 @@ function renderDashboard() {
                     return eventos.reduce((sum, r) => sum + r.min, 0);
                 }),
                 backgroundColor: colores[area] || colores['OTROS'],
-                borderRadius: 2 // Bordes ligeramente redondeados para un look más moderno
+                borderRadius: 2
             };
         });
 
@@ -711,7 +704,6 @@ function renderDashboard() {
             return Math.ceil(totalMin / 60); 
         });
 
-        // --- GRÁFICA TENDENCIA (AHORA EN HD) ---
         const ctxTendencia = document.getElementById('chartTendencia').getContext('2d');
         misGraficas.tendencia = new Chart(ctxTendencia, {
             type: 'bar',
@@ -721,28 +713,27 @@ function renderDashboard() {
                 scales: { 
                     x: { 
                         stacked: true, 
-                        grid: { display: false }, // Quitamos las líneas verticales para limpiar la vista
+                        grid: { display: false },
                         ticks: { 
                             font: { family: "'Segoe UI', sans-serif", size: 12, weight: 'bold' },
-                            color: '#4B5563' // Gris oscuro profesional
+                            color: '#4B5563'
                         }
                     }, 
                     y: { 
                         stacked: true,
-                        grid: { color: '#E5E7EB', borderDash: [5, 5] }, // Líneas guía punteadas
-                        border: { display: false } // Quita el borde sólido del eje Y
+                        grid: { color: '#E5E7EB', borderDash: [5, 5] },
+                        border: { display: false }
                     } 
                 },
                 plugins: { 
                     legend: { 
                         position: 'top',
-                        labels: { usePointStyle: true, boxWidth: 8, font: { weight: 'bold' } } // Leyenda en círculos en lugar de cuadros
+                        labels: { usePointStyle: true, boxWidth: 8, font: { weight: 'bold' } }
                     } 
                 }
             }
         });
 
-        // --- GRÁFICA ÁREA ---
         const ctxArea = document.getElementById('chartArea').getContext('2d');
         misGraficas.area = new Chart(ctxArea, {
             type: 'bar',
@@ -750,7 +741,6 @@ function renderDashboard() {
             options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
 
-        // --- GRÁFICA CÓDIGO ---
         const ctxCodigo = document.getElementById('chartCodigo').getContext('2d');
         misGraficas.codigo = new Chart(ctxCodigo, {
             type: 'bar',
@@ -758,7 +748,8 @@ function renderDashboard() {
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
     }
-        function renderTabla() {
+
+    function renderTabla() {
         const totalMin = State.filtrados.reduce((s,r) => s + r.min, 0);
         const pendientes = State.filtrados.filter(r => r.Area === 'PENDIENTE').length;
         document.getElementById('stats').innerHTML = `<div class="stat"><div class="n" style="${pendientes > 0 ? 'color:var(--tamsa-red)' : ''}">${pendientes}</div><div class="l">Fallas Pendientes</div></div><div class="stat"><div class="n">${State.filtrados.length}</div><div class="l">Eventos Visibles</div></div><div class="stat"><div class="n">${totalMin.toFixed(1)}</div><div class="l">Minutos Totales</div></div><div class="stat"><div class="n">${document.getElementById('f-linea').value === 'ALL' ? 'Ambas' : document.getElementById('f-linea').value}</div><div class="l">Línea Activa</div></div><div class="stat"><div class="n">${document.getElementById('f-area').value === 'ALL' ? 'Todas' : document.getElementById('f-area').value}</div><div class="l">Área Activa</div></div><div class="stat"><div class="n">${document.getElementById('f-codigo').value === 'ALL' ? 'Todos' : document.getElementById('f-codigo').value}</div><div class="l">Código Activo</div></div>`;
@@ -794,7 +785,7 @@ function renderDashboard() {
         const hdrs = ['Código', 'Línea', 'Área', 'Fecha', 'Turno', 'Inicio', 'Fin', 'Duración (min)', 'Observaciones', 'Actividades de Mantenimiento'];
         State.tsvData = hdrs.join('\t') + '\n' + State.filtrados.map(r => [r.Voz, r.Linea, r.Area, r.Fecha, r.Turno, r.Inicio, r.Fin, r.min, r.Observaciones, r.Actividades].map(v => String(v||'').replace(/\t/g,' ')).join('\t')).join('\n');
         
-        renderDashboard(); // <-- LLAMADA AL DASHBOARD CADA VEZ QUE SE FILTRA
+        renderDashboard(); 
     }
 
     function initEvents() {
