@@ -2,10 +2,12 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Cargador INOPS Multi-Línea V8.14 - Sin Límites</title>
+<title>Cargador INOPS Multi-Línea V8.15 - Dashboard Edition</title>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0"></script>
+<!-- Librería para el Dashboard Visual -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 :root { --tamsa-blue: #002D62; --tamsa-blue-hover: #001A3B; --tamsa-red: #D22730; --tamsa-red-hover: #A11D25; --tamsa-bg: #F0F2F5; --tamsa-surface: #FFFFFF; --tamsa-border: #D1D5DB; --tamsa-text: #1F2937; --tamsa-text-muted: #6B7280; --color-tubing: #004085; --color-casing: #D22730; --color-excel: #107C41; }
@@ -60,12 +62,19 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 .btn-excel-casing{background:var(--color-casing); color:var(--tamsa-surface);} .btn-excel-casing:hover{background:var(--tamsa-red-hover); box-shadow: 0 2px 4px rgba(0,0,0,0.2);}
 .btn:disabled{opacity:.5; cursor:not-allowed; box-shadow: none !important;}
 .hidden{display:none}
+
+/* ESTILOS PARA EL DASHBOARD VISUAL */
+.dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 24px; border-top: 2px dashed var(--tamsa-border); padding-top: 24px; }
+.chart-box { background: var(--tamsa-surface); border: 1px solid var(--tamsa-border); border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.chart-full { grid-column: span 2; }
+.chart-box h3 { text-align: center; font-size: 12px; font-weight: 700; color: var(--tamsa-text); margin-bottom: 12px; letter-spacing: 0.5px; text-transform: uppercase; }
+canvas { max-height: 300px; width: 100%; }
 </style>
 </head>
 <body>
 
 <div class="topbar">
-  <h1>⚙ Cargador INOPS — Hub de Control Dual (Enterprise V8.12)</h1>
+  <h1>⚙ Cargador INOPS — Hub de Control Dual (Enterprise V8.15)</h1>
   <span>Tenaris Tamsa | Análisis Multidimensional</span>
 </div>
 
@@ -139,13 +148,30 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
             <th>Fin</th>
             <th style="text-align:right">Tiempo (min)</th>
             <th>Observaciones de Falla</th>
-            <th>Actividades de Mantenimiento</th> <!-- NUEVA COLUMNA HTML -->
+            <th>Actividades de Mantenimiento</th>
           </tr>
         </thead>
         <tbody id="tbody"></tbody>
         <tfoot id="tfoot"></tfoot>
       </table>
     </div>
+
+    <!-- NUEVO: CONTENEDOR DEL DASHBOARD -->
+    <div class="dashboard-grid" id="panel-graficas" style="display: none;">
+      <div class="chart-box chart-full">
+        <h3>TENDENCIA DE FALLAS Y TIEMPOS DE PARO</h3>
+        <canvas id="chartTendencia"></canvas>
+      </div>
+      <div class="chart-box">
+        <h3>HORAS ÁREA</h3>
+        <canvas id="chartArea"></canvas>
+      </div>
+      <div class="chart-box">
+        <h3>HORAS CÓDIGO (VOZ)</h3>
+        <canvas id="chartCodigo"></canvas>
+      </div>
+    </div>
+
     <div class="btn-row">
       <button class="btn btn-blue" id="btn-sync">🔄 Subir actualización a Microsoft Lists</button>
       <button class="btn btn-green" id="btn-copy">📋 Copiar Tabla Visible</button>
@@ -175,6 +201,9 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         knowledgeBase: [],
         fuseInstance: null
     };
+
+    // VARIABLES PARA LAS GRÁFICAS
+    let misGraficas = {};
 
     try {
         const kb = localStorage.getItem('inops_kb');
@@ -221,7 +250,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
             return datos.map(r => {
                 return {
                     obs:         String(r.obs || r.Observaciones || '').replace(/["""''\\]/g, '').replace(/[\r\n\t]/g, ' ').substring(0, 200).trim(),
-                    actividades: String(r.Actividades || '').replace(/["""''\\]/g, '').replace(/[\r\n\t]/g, ' ').substring(0, 300).trim(), // NUEVO ATRIBUTO PARA POWER AUTOMATE
+                    actividades: String(r.Actividades || '').replace(/["""''\\]/g, '').replace(/[\r\n\t]/g, ' ').substring(0, 300).trim(), 
                     duracion:    Number(r.duracion || r.min) || 0,
                     area:        String(r.area || r.Area || '').replace(/[^A-Z0-9 ]/gi, '').substring(0, 20).trim(),
                     codigo:      String(r.codigo || r.Voz || '').replace(/[^A-Z0-9_\-]/gi, '').substring(0, 20).trim(),
@@ -312,7 +341,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
             turno: getIdx(['turno'], 2), inicio: getIdx(['inicio'], 5),
             fin: getIdx(['fin'], 6), duracion: getIdx(['duracion', 'duración', 'tiempo'], 7),
             codigo: getIdx(['codigo', 'código'], 8), obs: getIdx(['observacion', 'observación'], 10),
-            actividades: getIdx(['actividad', 'actividades', 'actividadesmantto'], 11) // <--- NUEVA REFERENCIA COLUMNA L
+            actividades: getIdx(['actividad', 'actividades', 'actividadesmantto'], 11)
         };
 
         return filasDatos.map(row => {
@@ -322,7 +351,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                 Turno: safeGet(mapCol.turno), Inicio: safeGet(mapCol.inicio),
                 Fin: safeGet(mapCol.fin), Duracion: safeGet(mapCol.duracion),
                 Codigo: safeGet(mapCol.codigo), Observaciones: safeGet(mapCol.obs),
-                Actividades: safeGet(mapCol.actividades) // <--- EXTRAE COLUMNA L
+                Actividades: safeGet(mapCol.actividades) 
             };
         }).filter(d => d.Observaciones !== '' && d.Observaciones.toLowerCase() !== 'observaciones');
     }
@@ -331,7 +360,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         const consolidados = {};
         rawRows.forEach(row => {
             const obsClean = Helpers.cleanOData(row.Observaciones);
-            const actClean = Helpers.cleanOData(row.Actividades); // LIMPIA ACTIVIDADES
+            const actClean = Helpers.cleanOData(row.Actividades); 
             const obsNorm = obsClean.toLowerCase();
             const fecha = (row.Fecha || '').trim();
             const linea = lineaForzada ? lineaForzada.trim().toUpperCase() : (row.Linea || '').trim().toUpperCase();
@@ -345,10 +374,9 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                     Tipo: (row.Tipo || 'Consolidado').trim(), Fecha: fecha,
                     Turno: (row.Turno || '').trim(), Inicio: (row.Inicio || '').trim(),
                     Fin: (row.Fin || '').trim(), Observaciones: obsClean, 
-                    Actividades: actClean, min: 0 // GUARDA ACTIVIDADES EN CONSOLIDADO
+                    Actividades: actClean, min: 0 
                 };
             } else {
-                // Si el evento ya existe y hay actividades nuevas/diferentes en esta fila, se concatenan
                 if (actClean && !consolidados[key].Actividades.includes(actClean)) {
                     consolidados[key].Actividades += (consolidados[key].Actividades ? ' | ' : '') + actClean;
                 }
@@ -359,9 +387,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         return Object.values(consolidados).map(g => ({ ...g, min: Math.round(g.min*100)/100 }));
     }
 
-    // ==========================================
-    // NUEVO MOTOR: LÓGICA DE RELLENO (PADDING)
-    // ==========================================
     function rellenarDiasSinEventos(datosAgrupados) {
         if (!datosAgrupados || datosAgrupados.length === 0) return [];
 
@@ -378,11 +403,9 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
             const registros = agrupadosPorMesYLinea[key];
             const linea = key.split('|')[0];
             
-            // Buscar la primera fecha válida para deducir de qué mes estamos hablando
             const registroValido = registros.find(r => r.Fecha && !isNaN(new Date(r.Fecha).getTime()));
             if(!registroValido) return;
 
-            // Parsing seguro de fechas para evitar problemas de zona horaria
             const strFecha = registroValido.Fecha.includes('T') ? registroValido.Fecha : registroValido.Fecha + 'T12:00:00';
             const dateObj = new Date(strFecha);
             const anio = dateObj.getFullYear();
@@ -398,7 +421,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                 }
             });
 
-            // Inyectar los días nulos faltantes
             for (let dia = 1; dia <= diasDelMes; dia++) {
                 if (!diasConEventos.has(dia)) {
                     const mesFormato = String(mesIdx + 1).padStart(2, '0');
@@ -419,17 +441,15 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                         Inicio: "00:00",
                         Fin: "00:00",
                         Observaciones: "Sin interrupciones (INOP Cero)",
-                        Actividades: "N/A", // PADDING INCLUYE CAMPO ACTIVIDADES
+                        Actividades: "N/A", 
                         min: 0
                     });
                 }
             }
         });
 
-        // Retornar base de datos ordenada cronológicamente
         return datosCompletos.sort((a, b) => a.Fecha.localeCompare(b.Fecha));
     }
-    // ==========================================
 
     function agregarFiles(fileList, linea) {
         Array.from(fileList).forEach(file => {
@@ -466,7 +486,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         listos.forEach(arc => todosLosRows.push(...arc.rows));
 
         setTimeout(() => {
-            // Consolidar e Inyectar Padding
             let consolidados = consolidarDatosUnificados(todosLosRows, null);
             State.agrupados = rellenarDiasSinEventos(consolidados); 
             
@@ -489,8 +508,6 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         reader.onload = async (e) => {
             try {
                 const rawRows = parsearArchivoUniversal(e.target.result);
-                
-                // Consolidar e Inyectar Padding Mensual
                 let datosUnificados = consolidarDatosUnificados(rawRows, lineaAsignada);
                 datosUnificados = rellenarDiasSinEventos(datosUnificados);
 
@@ -622,6 +639,81 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         renderTabla();
     }
 
+    function renderDashboard() {
+        document.getElementById('panel-graficas').style.display = 'grid';
+
+        if(misGraficas.tendencia) misGraficas.tendencia.destroy();
+        if(misGraficas.area) misGraficas.area.destroy();
+        if(misGraficas.codigo) misGraficas.codigo.destroy();
+
+        const datosReales = State.filtrados.filter(r => r.Area !== 'SIN EVENTO');
+
+        const diasSet = new Set();
+        datosReales.forEach(r => diasSet.add(r.Fecha));
+        const labelsDias = Array.from(diasSet).sort();
+
+        const areasSet = new Set();
+        datosReales.forEach(r => areasSet.add(r.Area));
+        const labelsAreas = Array.from(areasSet);
+
+        const colores = {
+            'ROBOTICA': '#306331',
+            'TRACKING': '#002D62',
+            'VISION': '#8c2d53',
+            'PENDIENTE': '#D22730',
+            'OTROS': '#7f7f7f'
+        };
+
+        const datasetsTendencia = labelsAreas.map(area => {
+            return {
+                label: area,
+                data: labelsDias.map(dia => {
+                    const eventos = datosReales.filter(r => r.Fecha === dia && r.Area === area);
+                    return eventos.reduce((sum, r) => sum + r.min, 0);
+                }),
+                backgroundColor: colores[area] || colores['OTROS']
+            };
+        });
+
+        const dataHorasArea = labelsAreas.map(area => {
+            const totalMin = datosReales.filter(r => r.Area === area).reduce((sum, r) => sum + r.min, 0);
+            return Math.ceil(totalMin / 60); 
+        });
+
+        const codigosSet = new Set();
+        datosReales.forEach(r => codigosSet.add(r.Voz));
+        const labelsCodigos = Array.from(codigosSet).sort();
+        const dataHorasCodigo = labelsCodigos.map(cod => {
+            const totalMin = datosReales.filter(r => r.Voz === cod).reduce((sum, r) => sum + r.min, 0);
+            return Math.ceil(totalMin / 60); 
+        });
+
+        const ctxTendencia = document.getElementById('chartTendencia').getContext('2d');
+        misGraficas.tendencia = new Chart(ctxTendencia, {
+            type: 'bar',
+            data: { labels: labelsDias, datasets: datasetsTendencia },
+            options: { 
+                responsive: true, maintainAspectRatio: false,
+                scales: { x: { stacked: true }, y: { stacked: true } },
+                plugins: { legend: { position: 'top' } }
+            }
+        });
+
+        const ctxArea = document.getElementById('chartArea').getContext('2d');
+        misGraficas.area = new Chart(ctxArea, {
+            type: 'bar',
+            data: { labels: labelsAreas, datasets: [{ label: 'Horas Totales', data: dataHorasArea, backgroundColor: labelsAreas.map(a => colores[a] || '#000') }] },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+
+        const ctxCodigo = document.getElementById('chartCodigo').getContext('2d');
+        misGraficas.codigo = new Chart(ctxCodigo, {
+            type: 'bar',
+            data: { labels: labelsCodigos, datasets: [{ label: 'Horas Totales', data: dataHorasCodigo, backgroundColor: '#c2005e' }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+    }
+
     function renderTabla() {
         const totalMin = State.filtrados.reduce((s,r) => s + r.min, 0);
         const pendientes = State.filtrados.filter(r => r.Area === 'PENDIENTE').length;
@@ -651,12 +743,14 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
             <td>${Helpers.escapeHTML(r.Fin)}</td>
             <td style="text-align:right;font-weight:700">${r.min}</td>
             <td class="obs-col">${Helpers.escapeHTML(r.Observaciones)}</td>
-            <td class="obs-col">${Helpers.escapeHTML(r.Actividades)}</td> <!-- TD COLUMNA HTML L -->
+            <td class="obs-col">${Helpers.escapeHTML(r.Actividades)}</td>
         </tr>`).join('');
         
         document.getElementById('tfoot').innerHTML = `<tr><td colspan="9" style="text-align:right">TOTAL VISIBLE</td><td style="text-align:right">${totalMin.toFixed(2)}</td><td></td><td></td></tr>`;
         const hdrs = ['Código', 'Línea', 'Área', 'Fecha', 'Turno', 'Inicio', 'Fin', 'Duración (min)', 'Observaciones', 'Actividades de Mantenimiento'];
         State.tsvData = hdrs.join('\t') + '\n' + State.filtrados.map(r => [r.Voz, r.Linea, r.Area, r.Fecha, r.Turno, r.Inicio, r.Fin, r.min, r.Observaciones, r.Actividades].map(v => String(v||'').replace(/\t/g,' ')).join('\t')).join('\n');
+        
+        renderDashboard(); // <-- LLAMADA AL DASHBOARD CADA VEZ QUE SE FILTRA
     }
 
     function initEvents() {
@@ -689,7 +783,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
     }
     
     function setStep(n) { for (let i=1; i<=4; i++) document.getElementById('st'+i).className = 'step' + (i<n?' done':i===n?' active':''); }
-    function limpiarTodo() { State.archivos = []; State.agrupados = []; State.filtrados = []; document.getElementById('files-grid').style.display = 'none'; document.getElementById('btn-procesar-row').style.display = 'none'; document.getElementById('card-result').classList.add('hidden'); setStep(1); document.getElementById('btn-sync').innerHTML = '🔄 Subir actualización a Microsoft Lists'; document.getElementById('btn-sync').disabled = false; }
+    function limpiarTodo() { State.archivos = []; State.agrupados = []; State.filtrados = []; document.getElementById('files-grid').style.display = 'none'; document.getElementById('btn-procesar-row').style.display = 'none'; document.getElementById('card-result').classList.add('hidden'); document.getElementById('panel-graficas').style.display = 'none'; setStep(1); document.getElementById('btn-sync').innerHTML = '🔄 Subir actualización a Microsoft Lists'; document.getElementById('btn-sync').disabled = false; }
     
     function exportarExcel(filtro, btnId) { 
         if (!State.agrupados.length) return; 
@@ -710,7 +804,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                 "Hora Fin": r.Fin, 
                 "Duración (min)": r.min, 
                 "Observaciones de Falla": r.Observaciones,
-                "Actividades de Mantenimiento": r.Actividades // NUEVA COLUMNA EN EXCEL L
+                "Actividades de Mantenimiento": r.Actividades 
             }); 
         }); 
         
