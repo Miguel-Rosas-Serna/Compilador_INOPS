@@ -646,21 +646,38 @@ canvas { max-height: 300px; width: 100%; }
 
         const datosReales = State.filtrados.filter(r => r.Area !== 'SIN EVENTO');
 
+        // El eje de días se construye con TODOS los registros visibles (incluye
+        // los días "SIN EVENTO" / sin interrupción), no solo los que tuvieron falla.
         const diasSet = new Set();
-        datosReales.forEach(r => diasSet.add(r.Fecha));
+        State.filtrados.forEach(r => diasSet.add(r.Fecha));
         const fechasOrdenadas = Array.from(diasSet).sort();
 
         const mesesNombres = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-        let mesPrevio = "";
-        
-        const labelsDias = fechasOrdenadas.map(fecha => {
+
+        // Agrupamos los índices de cada mes para poder centrar su etiqueta
+        // (en vez de mostrarla solo en el primer día del grupo).
+        const indicesPorMes = {};
+        fechasOrdenadas.forEach((fecha, idx) => {
+            const partes = fecha.split('-');
+            if (partes.length === 3) {
+                const mesActual = mesesNombres[parseInt(partes[1], 10) - 1];
+                if (!indicesPorMes[mesActual]) indicesPorMes[mesActual] = [];
+                indicesPorMes[mesActual].push(idx);
+            }
+        });
+        const indiceCentralPorMes = {};
+        Object.keys(indicesPorMes).forEach(mes => {
+            const indices = indicesPorMes[mes];
+            indiceCentralPorMes[mes] = indices[Math.floor(indices.length / 2)];
+        });
+
+        const labelsDias = fechasOrdenadas.map((fecha, idx) => {
             const partes = fecha.split('-');
             if(partes.length === 3) {
                 const dia = parseInt(partes[2], 10).toString();
                 const mesActual = mesesNombres[parseInt(partes[1], 10) - 1];
 
-                const textoMes = (mesActual !== mesPrevio) ? mesActual : "";
-                mesPrevio = mesActual;
+                const textoMes = (indiceCentralPorMes[mesActual] === idx) ? mesActual : "";
 
                 return [dia, textoMes]; 
             }
