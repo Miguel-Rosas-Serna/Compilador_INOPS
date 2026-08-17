@@ -126,7 +126,22 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
     <div class="stats" id="stats"></div>
     <div class="tbl-wrap">
       <table id="main-table">
-        <thead><tr><th>Código</th><th style="text-align: center;">Línea</th><th style="width: 140px;">Área de Mantenimiento</th><th>Mes</th><th>Tipo</th><th>Fecha</th><th>Turno</th><th>Inicio</th><th>Fin</th><th style="text-align:right">Tiempo (min)</th><th>Observaciones de Falla</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th style="text-align: center;">Línea</th>
+            <th style="width: 140px;">Área de Mantenimiento</th>
+            <th>Mes</th>
+            <th>Tipo</th>
+            <th>Fecha</th>
+            <th>Turno</th>
+            <th>Inicio</th>
+            <th>Fin</th>
+            <th style="text-align:right">Tiempo (min)</th>
+            <th>Observaciones de Falla</th>
+            <th>Actividades de Mantenimiento</th> <!-- NUEVA COLUMNA HTML -->
+          </tr>
+        </thead>
         <tbody id="tbody"></tbody>
         <tfoot id="tfoot"></tfoot>
       </table>
@@ -205,14 +220,14 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         serializarPayload: (datos) => {
             return datos.map(r => {
                 return {
-                    obs:      String(r.obs || r.Observaciones || '').replace(/["""''\\]/g, '').replace(/[\r\n\t]/g, ' ').substring(0, 200).trim(),
-                    duracion: Number(r.duracion || r.min) || 0,
-                    // Se agregó un espacio en la expresión regular para permitir "SIN EVENTO" sin fusionar las palabras
-                    area:     String(r.area || r.Area || '').replace(/[^A-Z0-9 ]/gi, '').substring(0, 20).trim(),
-                    codigo:   String(r.codigo || r.Voz || '').replace(/[^A-Z0-9_\-]/gi, '').substring(0, 20).trim(),
-                    linea:    String(r.linea || r.Linea || '').replace(/[^A-Z]/gi, '').substring(0, 10).trim(),
-                    fecha:    String(r.fecha || r.Fecha || '').replace(/[^0-9\-/]/g, '').substring(0, 10).trim(),
-                    mes:      String(r.mes || r.Mes || Helpers.extraerMes(r.fecha || r.Fecha)).substring(0, 15).trim()
+                    obs:         String(r.obs || r.Observaciones || '').replace(/["""''\\]/g, '').replace(/[\r\n\t]/g, ' ').substring(0, 200).trim(),
+                    actividades: String(r.Actividades || '').replace(/["""''\\]/g, '').replace(/[\r\n\t]/g, ' ').substring(0, 300).trim(), // NUEVO ATRIBUTO PARA POWER AUTOMATE
+                    duracion:    Number(r.duracion || r.min) || 0,
+                    area:        String(r.area || r.Area || '').replace(/[^A-Z0-9 ]/gi, '').substring(0, 20).trim(),
+                    codigo:      String(r.codigo || r.Voz || '').replace(/[^A-Z0-9_\-]/gi, '').substring(0, 20).trim(),
+                    linea:       String(r.linea || r.Linea || '').replace(/[^A-Z]/gi, '').substring(0, 10).trim(),
+                    fecha:       String(r.fecha || r.Fecha || '').replace(/[^0-9\-/]/g, '').substring(0, 10).trim(),
+                    mes:         String(r.mes || r.Mes || Helpers.extraerMes(r.fecha || r.Fecha)).substring(0, 15).trim()
                 };
             });
         }
@@ -296,7 +311,8 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
             tipo: getIdx(['tipo'], 0), fecha: getIdx(['fecha'], 1),
             turno: getIdx(['turno'], 2), inicio: getIdx(['inicio'], 5),
             fin: getIdx(['fin'], 6), duracion: getIdx(['duracion', 'duración', 'tiempo'], 7),
-            codigo: getIdx(['codigo', 'código'], 8), obs: getIdx(['observacion', 'observación'], 10)
+            codigo: getIdx(['codigo', 'código'], 8), obs: getIdx(['observacion', 'observación'], 10),
+            actividades: getIdx(['actividad', 'actividades', 'actividadesmantto'], 11) // <--- NUEVA REFERENCIA COLUMNA L
         };
 
         return filasDatos.map(row => {
@@ -305,7 +321,8 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                 Tipo: safeGet(mapCol.tipo), Fecha: safeGet(mapCol.fecha),
                 Turno: safeGet(mapCol.turno), Inicio: safeGet(mapCol.inicio),
                 Fin: safeGet(mapCol.fin), Duracion: safeGet(mapCol.duracion),
-                Codigo: safeGet(mapCol.codigo), Observaciones: safeGet(mapCol.obs)
+                Codigo: safeGet(mapCol.codigo), Observaciones: safeGet(mapCol.obs),
+                Actividades: safeGet(mapCol.actividades) // <--- EXTRAE COLUMNA L
             };
         }).filter(d => d.Observaciones !== '' && d.Observaciones.toLowerCase() !== 'observaciones');
     }
@@ -314,6 +331,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
         const consolidados = {};
         rawRows.forEach(row => {
             const obsClean = Helpers.cleanOData(row.Observaciones);
+            const actClean = Helpers.cleanOData(row.Actividades); // LIMPIA ACTIVIDADES
             const obsNorm = obsClean.toLowerCase();
             const fecha = (row.Fecha || '').trim();
             const linea = lineaForzada ? lineaForzada.trim().toUpperCase() : (row.Linea || '').trim().toUpperCase();
@@ -326,8 +344,14 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                     Area: analisis.area, Confianza: analisis.conf, Mes: Helpers.extraerMes(fecha),
                     Tipo: (row.Tipo || 'Consolidado').trim(), Fecha: fecha,
                     Turno: (row.Turno || '').trim(), Inicio: (row.Inicio || '').trim(),
-                    Fin: (row.Fin || '').trim(), Observaciones: obsClean, min: 0
+                    Fin: (row.Fin || '').trim(), Observaciones: obsClean, 
+                    Actividades: actClean, min: 0 // GUARDA ACTIVIDADES EN CONSOLIDADO
                 };
+            } else {
+                // Si el evento ya existe y hay actividades nuevas/diferentes en esta fila, se concatenan
+                if (actClean && !consolidados[key].Actividades.includes(actClean)) {
+                    consolidados[key].Actividades += (consolidados[key].Actividades ? ' | ' : '') + actClean;
+                }
             }
             consolidados[key].min += Helpers.durAMin(row.Duracion);
             if (row.Fin && row.Fin.trim() !== '') consolidados[key].Fin = row.Fin.trim();
@@ -395,6 +419,7 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
                         Inicio: "00:00",
                         Fin: "00:00",
                         Observaciones: "Sin interrupciones (INOP Cero)",
+                        Actividades: "N/A", // PADDING INCLUYE CAMPO ACTIVIDADES
                         min: 0
                     });
                 }
@@ -626,11 +651,12 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
             <td>${Helpers.escapeHTML(r.Fin)}</td>
             <td style="text-align:right;font-weight:700">${r.min}</td>
             <td class="obs-col">${Helpers.escapeHTML(r.Observaciones)}</td>
+            <td class="obs-col">${Helpers.escapeHTML(r.Actividades)}</td> <!-- TD COLUMNA HTML L -->
         </tr>`).join('');
         
-        document.getElementById('tfoot').innerHTML = `<tr><td colspan="9" style="text-align:right">TOTAL VISIBLE</td><td style="text-align:right">${totalMin.toFixed(2)}</td><td></td></tr>`;
-        const hdrs = ['Código', 'Línea', 'Área', 'Fecha', 'Turno', 'Inicio', 'Fin', 'Duración (min)', 'Observaciones'];
-        State.tsvData = hdrs.join('\t') + '\n' + State.filtrados.map(r => [r.Voz, r.Linea, r.Area, r.Fecha, r.Turno, r.Inicio, r.Fin, r.min, r.Observaciones].map(v => String(v||'').replace(/\t/g,' ')).join('\t')).join('\n');
+        document.getElementById('tfoot').innerHTML = `<tr><td colspan="9" style="text-align:right">TOTAL VISIBLE</td><td style="text-align:right">${totalMin.toFixed(2)}</td><td></td><td></td></tr>`;
+        const hdrs = ['Código', 'Línea', 'Área', 'Fecha', 'Turno', 'Inicio', 'Fin', 'Duración (min)', 'Observaciones', 'Actividades de Mantenimiento'];
+        State.tsvData = hdrs.join('\t') + '\n' + State.filtrados.map(r => [r.Voz, r.Linea, r.Area, r.Fecha, r.Turno, r.Inicio, r.Fin, r.min, r.Observaciones, r.Actividades].map(v => String(v||'').replace(/\t/g,' ')).join('\t')).join('\n');
     }
 
     function initEvents() {
@@ -664,7 +690,40 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
     
     function setStep(n) { for (let i=1; i<=4; i++) document.getElementById('st'+i).className = 'step' + (i<n?' done':i===n?' active':''); }
     function limpiarTodo() { State.archivos = []; State.agrupados = []; State.filtrados = []; document.getElementById('files-grid').style.display = 'none'; document.getElementById('btn-procesar-row').style.display = 'none'; document.getElementById('card-result').classList.add('hidden'); setStep(1); document.getElementById('btn-sync').innerHTML = '🔄 Subir actualización a Microsoft Lists'; document.getElementById('btn-sync').disabled = false; }
-    function exportarExcel(filtro, btnId) { if (!State.agrupados.length) return; let exportData = filtro === 'ALL' ? State.agrupados : State.agrupados.filter(r => r.Linea === filtro); if (exportData.length === 0) return alert('No hay datos procesados para esta línea.'); const datosMes = {}; exportData.forEach(r => { const mes = r.Mes || 'Sin_Mes'; if (!datosMes[mes]) datosMes[mes] = []; datosMes[mes].push({ "Código INOP": r.Voz, "Línea Producción": r.Linea, "Área Asignada": r.Area, "Fecha Evento": r.Fecha, "Turno": r.Turno, "Hora Inicio": r.Inicio, "Hora Fin": r.Fin, "Duración (min)": r.min, "Observaciones de Falla": r.Observaciones }); }); const wb = XLSX.utils.book_new(); Object.keys(datosMes).sort((a,b) => (CFG.mesesOrden.indexOf(a) === -1 ? 999 : CFG.mesesOrden.indexOf(a)) - (CFG.mesesOrden.indexOf(b) === -1 ? 999 : CFG.mesesOrden.indexOf(b))).forEach(m => XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(datosMes[m]), m)); XLSX.writeFile(wb, filtro === 'ALL' ? 'Reporte_Global_TenarisTamsa.xlsx' : `Reporte_TenarisTamsa_${filtro}.xlsx`); const btn = document.getElementById(btnId); const orig = btn.innerHTML; btn.innerHTML = '✅ Descarga Completada'; setTimeout(() => btn.innerHTML = orig, 3000); setStep(4); }
+    
+    function exportarExcel(filtro, btnId) { 
+        if (!State.agrupados.length) return; 
+        let exportData = filtro === 'ALL' ? State.agrupados : State.agrupados.filter(r => r.Linea === filtro); 
+        if (exportData.length === 0) return alert('No hay datos procesados para esta línea.'); 
+        
+        const datosMes = {}; 
+        exportData.forEach(r => { 
+            const mes = r.Mes || 'Sin_Mes'; 
+            if (!datosMes[mes]) datosMes[mes] = []; 
+            datosMes[mes].push({ 
+                "Código INOP": r.Voz, 
+                "Línea Producción": r.Linea, 
+                "Área Asignada": r.Area, 
+                "Fecha Evento": r.Fecha, 
+                "Turno": r.Turno, 
+                "Hora Inicio": r.Inicio, 
+                "Hora Fin": r.Fin, 
+                "Duración (min)": r.min, 
+                "Observaciones de Falla": r.Observaciones,
+                "Actividades de Mantenimiento": r.Actividades // NUEVA COLUMNA EN EXCEL L
+            }); 
+        }); 
+        
+        const wb = XLSX.utils.book_new(); 
+        Object.keys(datosMes).sort((a,b) => (CFG.mesesOrden.indexOf(a) === -1 ? 999 : CFG.mesesOrden.indexOf(a)) - (CFG.mesesOrden.indexOf(b) === -1 ? 999 : CFG.mesesOrden.indexOf(b))).forEach(m => XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(datosMes[m]), m)); 
+        XLSX.writeFile(wb, filtro === 'ALL' ? 'Reporte_Global_TenarisTamsa.xlsx' : `Reporte_TenarisTamsa_${filtro}.xlsx`); 
+        
+        const btn = document.getElementById(btnId); 
+        const orig = btn.innerHTML; 
+        btn.innerHTML = '✅ Descarga Completada'; 
+        setTimeout(() => btn.innerHTML = orig, 3000); 
+        setStep(4); 
+    }
     
     document.addEventListener('DOMContentLoaded', () => { inicializarKBCache(); initEvents(); });
 })();
