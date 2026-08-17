@@ -639,7 +639,7 @@ canvas { max-height: 300px; width: 100%; }
         renderTabla();
     }
 
-    function renderDashboard() {
+function renderDashboard() {
         document.getElementById('panel-graficas').style.display = 'grid';
 
         if(misGraficas.tendencia) misGraficas.tendencia.destroy();
@@ -650,7 +650,29 @@ canvas { max-height: 300px; width: 100%; }
 
         const diasSet = new Set();
         datosReales.forEach(r => diasSet.add(r.Fecha));
-        const labelsDias = Array.from(diasSet).sort();
+        const fechasOrdenadas = Array.from(diasSet).sort(); // Las fechas completas ("2026-08-02")
+
+        // ---------------------------------------------------------
+        // TRUCO HD: CONVERTIR FECHA EN DOS LÍNEAS (DÍA Y MES)
+        // ---------------------------------------------------------
+        const mesesNombres = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        let mesPrevio = "";
+        
+        const labelsDias = fechasOrdenadas.map(fecha => {
+            const partes = fecha.split('-');
+            if(partes.length === 3) {
+                const dia = parseInt(partes[2], 10).toString(); // Ej. "02" pasa a ser "2"
+                const mesActual = mesesNombres[parseInt(partes[1], 10) - 1]; // Ej. "Agosto"
+
+                // Solo imprimimos el nombre del mes si es diferente al día anterior (agrupación visual limpia)
+                const textoMes = (mesActual !== mesPrevio) ? mesActual : "";
+                mesPrevio = mesActual;
+
+                // Retornar un array de 2 elementos hace que Chart.js lo dibuje en 2 renglones separados
+                return [dia, textoMes]; 
+            }
+            return fecha;
+        });
 
         const areasSet = new Set();
         datosReales.forEach(r => areasSet.add(r.Area));
@@ -667,11 +689,12 @@ canvas { max-height: 300px; width: 100%; }
         const datasetsTendencia = labelsAreas.map(area => {
             return {
                 label: area,
-                data: labelsDias.map(dia => {
-                    const eventos = datosReales.filter(r => r.Fecha === dia && r.Area === area);
+                data: fechasOrdenadas.map(diaStr => {
+                    const eventos = datosReales.filter(r => r.Fecha === diaStr && r.Area === area);
                     return eventos.reduce((sum, r) => sum + r.min, 0);
                 }),
-                backgroundColor: colores[area] || colores['OTROS']
+                backgroundColor: colores[area] || colores['OTROS'],
+                borderRadius: 2 // Bordes ligeramente redondeados para un look más moderno
             };
         });
 
@@ -688,17 +711,38 @@ canvas { max-height: 300px; width: 100%; }
             return Math.ceil(totalMin / 60); 
         });
 
+        // --- GRÁFICA TENDENCIA (AHORA EN HD) ---
         const ctxTendencia = document.getElementById('chartTendencia').getContext('2d');
         misGraficas.tendencia = new Chart(ctxTendencia, {
             type: 'bar',
             data: { labels: labelsDias, datasets: datasetsTendencia },
             options: { 
                 responsive: true, maintainAspectRatio: false,
-                scales: { x: { stacked: true }, y: { stacked: true } },
-                plugins: { legend: { position: 'top' } }
+                scales: { 
+                    x: { 
+                        stacked: true, 
+                        grid: { display: false }, // Quitamos las líneas verticales para limpiar la vista
+                        ticks: { 
+                            font: { family: "'Segoe UI', sans-serif", size: 12, weight: 'bold' },
+                            color: '#4B5563' // Gris oscuro profesional
+                        }
+                    }, 
+                    y: { 
+                        stacked: true,
+                        grid: { color: '#E5E7EB', borderDash: [5, 5] }, // Líneas guía punteadas
+                        border: { display: false } // Quita el borde sólido del eje Y
+                    } 
+                },
+                plugins: { 
+                    legend: { 
+                        position: 'top',
+                        labels: { usePointStyle: true, boxWidth: 8, font: { weight: 'bold' } } // Leyenda en círculos en lugar de cuadros
+                    } 
+                }
             }
         });
 
+        // --- GRÁFICA ÁREA ---
         const ctxArea = document.getElementById('chartArea').getContext('2d');
         misGraficas.area = new Chart(ctxArea, {
             type: 'bar',
@@ -706,6 +750,7 @@ canvas { max-height: 300px; width: 100%; }
             options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
 
+        // --- GRÁFICA CÓDIGO ---
         const ctxCodigo = document.getElementById('chartCodigo').getContext('2d');
         misGraficas.codigo = new Chart(ctxCodigo, {
             type: 'bar',
@@ -713,8 +758,7 @@ canvas { max-height: 300px; width: 100%; }
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
     }
-
-    function renderTabla() {
+        function renderTabla() {
         const totalMin = State.filtrados.reduce((s,r) => s + r.min, 0);
         const pendientes = State.filtrados.filter(r => r.Area === 'PENDIENTE').length;
         document.getElementById('stats').innerHTML = `<div class="stat"><div class="n" style="${pendientes > 0 ? 'color:var(--tamsa-red)' : ''}">${pendientes}</div><div class="l">Fallas Pendientes</div></div><div class="stat"><div class="n">${State.filtrados.length}</div><div class="l">Eventos Visibles</div></div><div class="stat"><div class="n">${totalMin.toFixed(1)}</div><div class="l">Minutos Totales</div></div><div class="stat"><div class="n">${document.getElementById('f-linea').value === 'ALL' ? 'Ambas' : document.getElementById('f-linea').value}</div><div class="l">Línea Activa</div></div><div class="stat"><div class="n">${document.getElementById('f-area').value === 'ALL' ? 'Todas' : document.getElementById('f-area').value}</div><div class="l">Área Activa</div></div><div class="stat"><div class="n">${document.getElementById('f-codigo').value === 'ALL' ? 'Todos' : document.getElementById('f-codigo').value}</div><div class="l">Código Activo</div></div>`;
