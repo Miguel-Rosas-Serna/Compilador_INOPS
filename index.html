@@ -68,6 +68,8 @@ select.area-select:hover { border-color:var(--tamsa-blue); }
 .chart-full { grid-column: span 2; }
 .chart-box h3 { text-align: center; font-size: 12px; font-weight: 700; color: var(--tamsa-text); margin-bottom: 12px; letter-spacing: 0.5px; text-transform: uppercase; }
 canvas { max-height: 300px; width: 100%; }
+.chart-scroll-x { overflow-x: auto; overflow-y: hidden; padding-bottom: 6px; }
+.chart-scroll-x canvas { max-height: 300px; height: 300px; }
 </style>
 </head>
 <body>
@@ -159,7 +161,11 @@ canvas { max-height: 300px; width: 100%; }
     <div class="dashboard-grid" id="panel-graficas" style="display: none;">
       <div class="chart-box chart-full">
         <h3>TENDENCIA DE FALLAS Y TIEMPOS DE PARO</h3>
-        <canvas id="chartTendencia"></canvas>
+        <div class="chart-scroll-x" id="tendenciaScrollWrap">
+          <div id="tendenciaInner" style="height:300px;">
+            <canvas id="chartTendencia"></canvas>
+          </div>
+        </div>
       </div>
       <div class="chart-box">
         <h3>HORAS ÁREA</h3>
@@ -721,7 +727,18 @@ canvas { max-height: 300px; width: 100%; }
             return Math.ceil(totalMin / 60); 
         });
 
-        const ctxTendencia = document.getElementById('chartTendencia').getContext('2d');
+        // Ancho dinámico: cada día necesita su propio espacio para que ningún
+        // tick se rote ni se omita (autoSkip:false), y para que el nombre del
+        // mes centrado siempre tenga un lugar visible debajo de sus días.
+        const wrapTendencia = document.getElementById('tendenciaScrollWrap');
+        const innerTendencia = document.getElementById('tendenciaInner');
+        const anchoMinContenedor = wrapTendencia.clientWidth || wrapTendencia.parentElement.clientWidth || 800;
+        const anchoPorDia = 26; // px por cada día
+        const anchoCalculado = Math.max(anchoMinContenedor, fechasOrdenadas.length * anchoPorDia);
+        innerTendencia.style.width = anchoCalculado + 'px';
+
+        const canvasTendencia = document.getElementById('chartTendencia');
+        const ctxTendencia = canvasTendencia.getContext('2d');
         misGraficas.tendencia = new Chart(ctxTendencia, {
             type: 'bar',
             data: { labels: labelsDias, datasets: datasetsTendencia },
@@ -732,8 +749,11 @@ canvas { max-height: 300px; width: 100%; }
                         stacked: true, 
                         grid: { display: false },
                         ticks: { 
-                            font: { family: "'Segoe UI', sans-serif", size: 12, weight: 'bold' },
-                            color: '#4B5563'
+                            font: { family: "'Segoe UI', sans-serif", size: 11, weight: 'bold' },
+                            color: '#4B5563',
+                            autoSkip: false,
+                            maxRotation: 0,
+                            minRotation: 0
                         }
                     }, 
                     y: { 
