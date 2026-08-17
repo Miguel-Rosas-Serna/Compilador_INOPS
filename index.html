@@ -754,12 +754,24 @@ canvas { max-height: 300px; width: 100%; }
                             autoSkip: false,
                             maxRotation: 0,
                             minRotation: 0
+                        },
+                        title: {
+                            display: true,
+                            text: 'Fecha (Día del mes)',
+                            font: { size: 11, weight: 'bold' },
+                            color: '#374151'
                         }
                     }, 
                     y: { 
                         stacked: true,
                         grid: { color: '#E5E7EB', borderDash: [5, 5] },
-                        border: { display: false }
+                        border: { display: false },
+                        title: {
+                            display: true,
+                            text: 'Minutos de Paro',
+                            font: { size: 11, weight: 'bold' },
+                            color: '#374151'
+                        }
                     } 
                 },
                 plugins: { 
@@ -775,14 +787,36 @@ canvas { max-height: 300px; width: 100%; }
         misGraficas.area = new Chart(ctxArea, {
             type: 'bar',
             data: { labels: labelsAreas, datasets: [{ label: 'Horas Totales', data: dataHorasArea, backgroundColor: labelsAreas.map(a => colores[a] || '#000') }] },
-            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            options: { 
+                indexAxis: 'y', responsive: true, maintainAspectRatio: false, 
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Horas Totales', font: { size: 11, weight: 'bold' }, color: '#374151' }
+                    },
+                    y: {
+                        title: { display: true, text: 'Área de Mantenimiento', font: { size: 11, weight: 'bold' }, color: '#374151' }
+                    }
+                },
+                plugins: { legend: { display: false } } 
+            }
         });
 
         const ctxCodigo = document.getElementById('chartCodigo').getContext('2d');
         misGraficas.codigo = new Chart(ctxCodigo, {
             type: 'bar',
             data: { labels: labelsCodigos, datasets: [{ label: 'Horas Totales', data: dataHorasCodigo, backgroundColor: '#c2005e' }] },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            options: { 
+                responsive: true, maintainAspectRatio: false, 
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Código INOP (Voz)', font: { size: 11, weight: 'bold' }, color: '#374151' }
+                    },
+                    y: {
+                        title: { display: true, text: 'Horas Totales', font: { size: 11, weight: 'bold' }, color: '#374151' }
+                    }
+                },
+                plugins: { legend: { display: false } } 
+            }
         });
     }
 
